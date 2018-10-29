@@ -25,11 +25,18 @@ using System.Net;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using Hangfire;
+using Microsoft.AspNetCore.Hosting;
 
 namespace DesignCheck.Controllers
 {
     public class WebhookController : ControllerBase
     {
+        private IHostingEnvironment _env;
+        public WebhookController(IHostingEnvironment env)
+        {
+            _env = env;
+        }
+
         /// <summary>
         /// Credentials on this request
         /// </summary>
@@ -140,7 +147,7 @@ namespace DesignCheck.Controllers
                 */
 
                 // use Hangfire to schedule a job
-                BackgroundJob.Schedule(() => ExtractMetadata(userId, projectId, versionId), TimeSpan.FromSeconds(30));
+                BackgroundJob.Schedule(() => ExtractMetadata(userId, projectId, versionId, _env.ContentRootPath), TimeSpan.FromSeconds(5));
             }
             catch { }
 
@@ -148,12 +155,12 @@ namespace DesignCheck.Controllers
             return Ok();
         }
 
-        public async static Task ExtractMetadata(string userId, string projectId, string versionId)
+        public async static Task ExtractMetadata(string userId, string projectId, string versionId, string contentRootPath)
         {
             try
             {
                 DesignAutomation4Revit daRevit = new DesignAutomation4Revit();
-                await daRevit.StartDesignCheck(userId, projectId, versionId);
+                await daRevit.StartDesignCheck(userId, projectId, versionId, contentRootPath);
             }
             catch (Exception e)
             {
