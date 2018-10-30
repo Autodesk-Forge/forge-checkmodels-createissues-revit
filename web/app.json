@@ -1,0 +1,39 @@
+{
+    "name": "data.management-csharp-webhook",
+    "description": "Webhooks for Data Management hubs",
+    "repository": "https://github.com/autodesk-forge/data.management-csharp-webhook",
+    "logo": "https://avatars0.githubusercontent.com/u/8017462?v=3&s=200",
+    "keywords": [
+        "autodesk",
+        "forge",
+        "bim360",
+        "webhook"
+    ],
+    "env": {
+        "FORGE_CLIENT_ID": {
+            "description": "Forge Client ID"
+        },
+        "FORGE_CLIENT_SECRET": {
+            "description": "Forge Client Secret"
+        },
+        "FORGE_CALLBACK_URL": {
+            "description": "Callback URL of your Forge app, required for 3-legged OAuth",
+            "value": "https://<<YOUR HEROKU APP NAME HERE>>.herokuapp.com/api/forge/callback/oauth"
+        },
+        "FORGE_WEBHOOK_CALLBACK_URL": {
+            "description": "Callback URL of your webhook",
+            "value": "http://<<YOUR HEROKU APP NAME HERE>>/api/forge/callback/webhook"
+        },
+        "OAUTH_DATABASE": {
+            "description": "MongoDB connection string, e.g frmm mLab",
+            "value": "mongodb://user:password@ds1234.mlab.com:6789/databaseName"
+        }
+    },
+    "website": "https://developer.autodesk.com/",
+    "success_url": "/",
+    "buildpacks": [
+        {
+            "url": "https://github.com/jincod/dotnetcore-buildpack.git"
+        }
+    ]
+}

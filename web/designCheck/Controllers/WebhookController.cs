@@ -150,7 +150,7 @@ namespace DesignCheck.Controllers
                 */
 
                 // use Hangfire to schedule a job
-                BackgroundJob.Schedule(() => ExtractMetadata(userId, projectId, versionId, _env.ContentRootPath), TimeSpan.FromSeconds(5));
+                BackgroundJob.Schedule(() => StartDesignCheck(userId, projectId, versionId, _env.ContentRootPath), TimeSpan.FromSeconds(5));
             }
             catch { }
 
@@ -158,7 +158,7 @@ namespace DesignCheck.Controllers
             return Ok();
         }
 
-        public async static Task ExtractMetadata(string userId, string projectId, string versionId, string contentRootPath)
+        public async static Task StartDesignCheck(string userId, string projectId, string versionId, string contentRootPath)
         {
             try
             {
