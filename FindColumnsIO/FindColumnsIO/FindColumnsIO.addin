@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<RevitAddIns>
+   <AddIn Type="DBApplication">
+      <Name>Find Columns Embedded In Walls IO</Name>
+      <Assembly>.\FindColumnsIO.dll</Assembly>
+      <ClientId>920121CF-154E-41B1-BAB3-C353C9F3B6C8</ClientId>
+      <FullClassName>FindColumnsIO.FindColumnsIOApp</FullClassName>
+      <Description>"Find Columns IO"</Description>
+      <VendorId>ADSK</VendorId>
+      <VendorDescription>Autodesk, www.autodesk.com</VendorDescription>
+   </AddIn>  
+</RevitAddIns>
