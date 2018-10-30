@@ -16,13 +16,11 @@
 // UNINTERRUPTED OR ERROR FREE.
 /////////////////////////////////////////////////////////////////////
 
+using Amazon.S3;
 using Autodesk.Forge;
 using Autodesk.Forge.DesignAutomation.v3;
+using Autodesk.Forge.Model;
 using Autodesk.Forge.Model.DesignAutomation.v3;
-using ActivitiesApi = Autodesk.Forge.DesignAutomation.v3.ActivitiesApi;
-using Activity = Autodesk.Forge.Model.DesignAutomation.v3.Activity;
-using WorkItemsApi = Autodesk.Forge.DesignAutomation.v3.WorkItemsApi;
-using WorkItem = Autodesk.Forge.Model.DesignAutomation.v3.WorkItem;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 using System;
@@ -30,11 +28,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
-using Amazon.S3;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using Autodesk.Forge.Model;
+using ActivitiesApi = Autodesk.Forge.DesignAutomation.v3.ActivitiesApi;
+using Activity = Autodesk.Forge.Model.DesignAutomation.v3.Activity;
+using WorkItem = Autodesk.Forge.Model.DesignAutomation.v3.WorkItem;
+using WorkItemsApi = Autodesk.Forge.DesignAutomation.v3.WorkItemsApi;
 
 namespace DesignCheck.Controllers
 {
@@ -158,13 +155,14 @@ namespace DesignCheck.Controllers
             string objectName = versionItemParams[versionItemParams.Length - 1];
             string downloadUrl = string.Format("https://developer.api.autodesk.com/oss/v2/buckets/{0}/objects/{1}", bucketKey, objectName);
 
-            return new JObject{
-                    new JProperty("url", downloadUrl),
-                    new JProperty("headers",
-                    new JObject{
-                        new JProperty("Authorization", "Bearer " + userAccessToken)
-                    })
-                    };
+            return new JObject
+            {
+                new JProperty("url", downloadUrl),
+                new JProperty("headers",
+                new JObject{
+                    new JProperty("Authorization", "Bearer " + userAccessToken)
+                })
+            };
         }
 
         private JObject BuildUploadURL(string resultFilename)
@@ -177,17 +175,17 @@ namespace DesignCheck.Controllers
             Uri uploadToS3 = new Uri(client.GeneratePreSignedURL(bucketName, resultFilename, DateTime.Now.AddMinutes(10), props));
 
             return new JObject
-                {
-                    new JProperty("verb", "PUT"),
-                    new JProperty("url", uploadToS3.GetLeftPart(UriPartial.Path)),
-                    new JProperty("headers",MakeHeaders(WebRequestMethods.Http.Put, uploadToS3))
-                };
+            {
+                new JProperty("verb", "PUT"),
+                new JProperty("url", uploadToS3.GetLeftPart(UriPartial.Path)),
+                new JProperty("headers",MakeHeaders(WebRequestMethods.Http.Put, uploadToS3))
+            };
         }
 
         private JObject MakeHeaders(string verb, Uri query)
         {
             // Prepare headers
-            var collection = Signature.SignatureHeader(
+            var collection = AWSSignature.SignatureHeader(
               Amazon.RegionEndpoint.USWest2, query.Host,
               verb, query.AbsolutePath);
 
@@ -212,114 +210,20 @@ namespace DesignCheck.Controllers
             await EnsureActivity(appAccessToken);
 
             string resultFilename = versionId + ".txt";
-            string callbackUrl = string.Format("{0}/{1}/{2}/{3}", Credentials.GetAppSetting("FORGE_DESIGNAUTOMATION_CALLBACK_URL"), userId, projectId, versionId);
+            string callbackUrl = string.Format("{0}/api/forge/callback/designautomation/{1}/{2}/{3}", Credentials.GetAppSetting("FORGE_CALLBACK_URL"), userId, projectId, versionId);
             WorkItem workItemSpec = new WorkItem(
               null,
               string.Format("{0}.{1}+{2}", NickName, ACTIVITY_NAME, ALIAS),
               new Dictionary<string, JObject>()
               {
-                        { "rvtFile", await BuildDownloadURL(credentials.TokenInternal, projectId, versionId) },
-                        { "result", BuildUploadURL(resultFilename)  },
-                        { "onComplete", new JObject { new JProperty("verb", "GET"), new JProperty("URL", callbackUrl) }}
-                },
+                  { "rvtFile", await BuildDownloadURL(credentials.TokenInternal, projectId, versionId) },
+                  { "result", BuildUploadURL(resultFilename)  },
+                  { "onComplete", new JObject { new JProperty("verb", "GET"), new JProperty("URL", callbackUrl) }}
+              },
               null);
             WorkItemsApi workItemApi = new WorkItemsApi();
             workItemApi.Configuration.AccessToken = appAccessToken;
             WorkItemStatus newWorkItem = await workItemApi.WorkItemsCreateWorkItemsAsync(null, null, workItemSpec);
-        }
-
-        // Adapted from https://stackoverflow.com/a/32906946
-        private class Signature
-        {
-            private const string Algorithm = "AWS4-HMAC-SHA256";
-            private const string SignedHeaders = "host;x-amz-date";
-            private const string ServiceName = "s3";
-
-            /// <summary>
-            /// Generate the headers to download (GET) and upload (PUT) to AWS S3 bucket
-            /// </summary>
-            /// <param name="RegionName">A valid AWS Region</param>
-            /// <param name="Host">e.g https://bucketName.s3-us-west-2.amazonaws.com</param>
-            /// <param name="verb">Only GET and PUT are implemented on this function</param>
-            /// <param name="absolutePath">e.g. /fileName.dwg</param>
-            /// <returns>Dictionary with header names and values</returns>
-            public static SortedDictionary<string, string> SignatureHeader(
-              Amazon.RegionEndpoint RegionName, string Host,
-              string verb, string absolutePath)
-            {
-                var hashedRequestPayload = (verb == WebRequestMethods.Http.Put ? "UNSIGNED-PAYLOAD" : /*Get*/ CreateRequestPayload(string.Empty));
-                var currentDateTime = DateTime.UtcNow;
-                var dateStamp = currentDateTime.ToString("yyyyMMdd");
-                var requestDate = currentDateTime.ToString("yyyyMMddTHHmmss") + "Z";
-                var credentialScope = string.Format("{0}/{1}/{2}/aws4_request", dateStamp, RegionName.SystemName, ServiceName);
-
-                var headers = new SortedDictionary<string, string> {
-                { "host", Host  },
-                { "x-amz-date", requestDate }
-                };
-
-                string canonicalHeaders = string.Join("\n", headers.Select(x => x.Key.ToLowerInvariant() + ":" + x.Value.Trim())) + "\n";
-
-                // Task 1: Create a Canonical Request For Signature Version 4
-                string canonicalRequest = verb + "\n" + absolutePath + "\n" + "\n" + canonicalHeaders + "\n" + SignedHeaders + "\n" + hashedRequestPayload;
-                string hashedCanonicalRequest = HexEncode(Hash(ToBytes(canonicalRequest)));
-
-                // Task 2: Create a String to Sign for Signature Version 4
-                string stringToSign = Algorithm + "\n" + requestDate + "\n" + credentialScope + "\n" + hashedCanonicalRequest;
-
-                // Task 3: Calculate the AWS Signature Version 4
-                byte[] signingKey = GetSignatureKey(Credentials.GetAppSetting("AWSSecretKey"), dateStamp, RegionName.SystemName, ServiceName);
-                string signature = HexEncode(HmacSha256(stringToSign, signingKey));
-
-                // Task 4: Prepare a signed request
-                // Authorization: algorithm Credential=access key ID/credential scope, SignedHeadaers=SignedHeaders, Signature=signature
-                string authorization = string.Format("{0} Credential={1}/{2}/{3}/{4}/aws4_request, SignedHeaders={5}, Signature={6}",
-                  Algorithm, Credentials.GetAppSetting("AWSAccessKey"), dateStamp, RegionName.SystemName, ServiceName, SignedHeaders, signature);
-
-                // Authorization ready, add to the header collection
-                headers.Add("Authorization", authorization);
-
-                // for PUT, the content header cannot be defined in adavance, so make as unsigned payload
-                headers.Add("x-amz-content-sha256", (verb == WebRequestMethods.Http.Put ? "UNSIGNED-PAYLOAD" : hashedRequestPayload));
-
-                return headers;
-            }
-
-            private static string CreateRequestPayload(string jsonString)
-            {
-                return HexEncode(Hash(ToBytes(jsonString)));
-            }
-
-            /// <summary>
-            /// From AWS Help http://docs.aws.amazon.com/general/latest/gr/signature-v4-examples.html
-            /// </summary>
-            private static byte[] GetSignatureKey(string key, string dateStamp, string regionName, string serviceName)
-            {
-                byte[] kDate = HmacSha256(dateStamp, ToBytes("AWS4" + key));
-                byte[] kRegion = HmacSha256(regionName, kDate);
-                byte[] kService = HmacSha256(serviceName, kRegion);
-                return HmacSha256("aws4_request", kService);
-            }
-
-            private static byte[] ToBytes(string str)
-            {
-                return Encoding.UTF8.GetBytes(str.ToCharArray());
-            }
-
-            private static string HexEncode(byte[] bytes)
-            {
-                return BitConverter.ToString(bytes).Replace("-", string.Empty).ToLowerInvariant();
-            }
-
-            private static byte[] Hash(byte[] bytes)
-            {
-                return SHA256.Create().ComputeHash(bytes);
-            }
-
-            private static byte[] HmacSha256(string data, byte[] key)
-            {
-                return new HMACSHA256(key).ComputeHash(ToBytes(data));
-            }
         }
     }
 }

@@ -16,13 +16,13 @@
 // UNINTERRUPTED OR ERROR FREE.
 /////////////////////////////////////////////////////////////////////
 
+using Amazon.S3;
+using Hangfire;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Amazon.S3;
-using Microsoft.AspNetCore.Mvc;
-using Hangfire;
-using Microsoft.AspNetCore.Hosting;
 
 namespace DesignCheck.Controllers
 {

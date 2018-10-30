@@ -16,16 +16,13 @@
 // UNINTERRUPTED OR ERROR FREE.
 /////////////////////////////////////////////////////////////////////
 
-using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Autodesk.Forge;
-using Microsoft.AspNetCore.Http;
-using System.Net;
-using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
 using Hangfire;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace DesignCheck.Controllers
 {
@@ -44,7 +41,13 @@ namespace DesignCheck.Controllers
 
         // with the api/forge/callback/webhook endpoint
         // e.g. local testing with http://1234.ngrok.io/api/forge/callback/webhook
-        public string CallbackUrl { get { return Credentials.GetAppSetting("FORGE_WEBHOOK_CALLBACK_URL"); } }
+        public string CallbackUrl
+        {
+            get
+            {
+                return Credentials.GetAppSetting("FORGE_WEBHOOK_CALLBACK_HOST") + "/api/forge/callback/webhook";
+            }
+        }
 
         private string ExtractFolderIdFromHref(string href)
         {
