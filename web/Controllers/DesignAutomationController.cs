@@ -17,6 +17,7 @@
 /////////////////////////////////////////////////////////////////////
 
 using Amazon.S3;
+using Autodesk.Forge;
 using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -34,9 +35,9 @@ namespace DesignCheck.Controllers
             _env = env;
         }
 
-        [HttpGet]
-        [Route("api/forge/callback/designautomation/{userId}/{projectId}/{versionId}")]
-        public IActionResult OnReadyDesignCheck(string userId, string projectId, string versionId)
+        [HttpPost]
+        [Route("api/forge/callback/designautomation/{userId}/{hubId}/{projectId}/{versionId}")]
+        public IActionResult OnReadyDesignCheck(string userId, string hubId, string projectId, string versionId, [FromBody]dynamic body)
         {
             // catch any errors, we don't want to return 500
             try
@@ -53,7 +54,7 @@ namespace DesignCheck.Controllers
                 */
 
                 // use Hangfire to schedule a job
-                BackgroundJob.Schedule(() => CreateIssues(userId, projectId, versionId, _env.ContentRootPath), TimeSpan.FromSeconds(5));
+                BackgroundJob.Schedule(() => CreateIssues(userId, hubId, projectId, versionId, _env.ContentRootPath), TimeSpan.FromSeconds(1));
             }
             catch { }
 
@@ -61,26 +62,43 @@ namespace DesignCheck.Controllers
             return Ok();
         }
 
-        public async Task CreateIssues(string userId, string projectId, string versionId, string contentRootPath)
+        public async Task CreateIssues(string userId, string hubId, string projectId, string versionId, string contentRootPath)
         {
-            string bucketName = "revitdesigncheck-" + DesignAutomation4Revit.NickName;
+            string bucketName = "revitdesigncheck" + DesignAutomation4Revit.NickName.ToLower();
             IAmazonS3 client = new AmazonS3Client(Amazon.RegionEndpoint.USWest2);
 
             string resultFilename = versionId + ".txt";
 
             // create AWS Bucket
             if (!await client.DoesS3BucketExistAsync(bucketName)) return;
-            Uri downloadFromS3 = new Uri(client.GeneratePreSignedURL(bucketName, resultFilename, DateTime.Now.AddMinutes(90), null));
+            Uri downloadFromS3 = new Uri(client.GeneratePreSignedURL(bucketName, resultFilename, DateTime.Now.AddMinutes(10), null));
 
-            // ToDo: is better way?
+
+            // ToDo: is there a better way?
             string results = Path.Combine(contentRootPath, resultFilename);
+            var keys = await client.GetAllObjectKeysAsync(bucketName, null, null);
+            if (!keys.Contains(resultFilename)) return; // file is not there
             await client.DownloadToFilePathAsync(bucketName, resultFilename, results, null);
+            string contents = System.IO.File.ReadAllText(results);
+            string uniqueIds = contents.Replace(",", Environment.NewLine);
+
+            Credentials credentials = await Credentials.FromDatabaseAsync(userId);
+
+            VersionsApi versionApi = new VersionsApi();
+            versionApi.Configuration.AccessToken = credentials.TokenInternal;
+            dynamic versionItem = await versionApi.GetVersionItemAsync(projectId, versionId.Base64Decode());
+            string itemId = versionItem.data.id;
+            int version = Int32.Parse(versionId.Split("_")[1].Base64Decode().Split("=")[1]);
 
             // create issues
+            BIM360Issues issues = new BIM360Issues();
+            string containerId = await issues.GetContainer(credentials.TokenInternal, hubId, projectId);
+            await issues.CreateIssue(credentials.TokenInternal, containerId , itemId,  version,  uniqueIds);
+
 
 
             // only delete if it completes
-            await client.DeleteObjectAsync(bucketName, resultFilename);
+            //await client.DeleteObjectAsync(bucketName, resultFilename);
         }
     }
 }

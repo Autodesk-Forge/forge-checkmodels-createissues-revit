@@ -42,10 +42,16 @@ $(document).ready(function () {
   $('#startMonitorFolder').click(function () {
     var node = $("#userHubs").jstree("get_selected", true);
     if (node.length != 1 || node[0].type !== 'folders') return;
+    var hubId = '';
+    var re = /hubs\/(.*)\/projects\//;
+    node[0].parents.forEach(p => {
+      if (p.match(re))
+        hubId = p.match(re)[1];
+    });
     $.ajax({
       type: "POST",
       url: '/api/forge/webhook',
-      data: { href: node[0].id },
+      data: { hubId: hubId, href: node[0].id },
       success: function (res) {
         updateCurrentMonitor(node[0]);
       }

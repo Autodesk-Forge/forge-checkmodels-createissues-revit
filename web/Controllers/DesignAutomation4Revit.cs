@@ -37,9 +37,9 @@ namespace DesignCheck.Controllers
 {
     public class DesignAutomation4Revit
     {
-        private const string APPNAME = "DesignCheckApp";
-        private const string APPBUNBLENAME = "DesignCheckAppBundle.zip";
-        private const string ACTIVITY_NAME = "DesignCheckActivity";
+        private const string APPNAME = "FindColumnsApp";
+        private const string APPBUNBLENAME = "FindColumnsAppBundle.zip";
+        private const string ACTIVITY_NAME = "FindColumnsActivity";
         private const string ALIAS = "v1";
 
         public static string NickName
@@ -75,10 +75,10 @@ namespace DesignCheck.Controllers
             {
                 // check if ZIP with bundle is here
                 string packageZipPath = Path.Combine(contentRootPath, APPBUNBLENAME);
-                if (!System.IO.File.Exists(packageZipPath)) throw new Exception("Change Parameter bundle not found at " + packageZipPath);
+                if (!System.IO.File.Exists(packageZipPath)) throw new Exception("FindColumns appbundle not found at " + packageZipPath);
 
                 // create bundle
-                AppBundle appBundleSpec = new AppBundle(APPNAME, null, "Autodesk.Revit+2018", null, null, APPNAME, null, APPNAME);
+                AppBundle appBundleSpec = new AppBundle(APPNAME, null, "Autodesk.Revit+2019", null, null, APPNAME, null, APPNAME);
                 AppBundle newApp = await appBundlesApi.AppBundlesCreateItemAsync(appBundleSpec);
                 if (newApp == null) throw new Exception("Cannot create new app");
 
@@ -165,10 +165,13 @@ namespace DesignCheck.Controllers
             };
         }
 
-        private JObject BuildUploadURL(string resultFilename)
+        private async Task<JObject> BuildUploadURL(string resultFilename)
         {
-            string bucketName = "revitdesigncheck-" + NickName;
+            string bucketName = "revitdesigncheck" + NickName.ToLower();
             IAmazonS3 client = new AmazonS3Client(Amazon.RegionEndpoint.USWest2);
+
+            if (!await client.DoesS3BucketExistAsync(bucketName))
+                await client.EnsureBucketExistsAsync(bucketName);
 
             Dictionary<string, object> props = new Dictionary<string, object>();
             props.Add("Verb", "PUT");
@@ -177,8 +180,8 @@ namespace DesignCheck.Controllers
             return new JObject
             {
                 new JProperty("verb", "PUT"),
-                new JProperty("url", uploadToS3.GetLeftPart(UriPartial.Path)),
-                new JProperty("headers",MakeHeaders(WebRequestMethods.Http.Put, uploadToS3))
+                new JProperty("url", uploadToS3.ToString()) //uploadToS3.GetLeftPart(UriPartial.Path)),
+                //new JProperty("headers", MakeHeaders(WebRequestMethods.Http.Put, uploadToS3))
             };
         }
 
@@ -199,7 +202,7 @@ namespace DesignCheck.Controllers
             return headers;
         }
 
-        public async Task StartDesignCheck(string userId, string projectId, string versionId, string contentRootPath)
+        public async Task StartDesignCheck(string userId, string hubId, string projectId, string versionId, string contentRootPath)
         {
             Credentials credentials = await Credentials.FromDatabaseAsync(userId);
 
@@ -209,16 +212,16 @@ namespace DesignCheck.Controllers
             await EnsureAppBundle(appAccessToken, contentRootPath);
             await EnsureActivity(appAccessToken);
 
-            string resultFilename = versionId + ".txt";
-            string callbackUrl = string.Format("{0}/api/forge/callback/designautomation/{1}/{2}/{3}", Credentials.GetAppSetting("FORGE_CALLBACK_URL"), userId, projectId, versionId);
+            string resultFilename = versionId.Base64Encode() + ".txt";
+            string callbackUrl = string.Format("{0}/api/forge/callback/designautomation/{1}/{2}/{3}/{4}", Credentials.GetAppSetting("FORGE_WEBHOOK_CALLBACK_HOST"), userId, hubId, projectId, versionId.Base64Encode());
             WorkItem workItemSpec = new WorkItem(
               null,
               string.Format("{0}.{1}+{2}", NickName, ACTIVITY_NAME, ALIAS),
               new Dictionary<string, JObject>()
               {
                   { "rvtFile", await BuildDownloadURL(credentials.TokenInternal, projectId, versionId) },
-                  { "result", BuildUploadURL(resultFilename)  },
-                  { "onComplete", new JObject { new JProperty("verb", "GET"), new JProperty("URL", callbackUrl) }}
+                  { "result", await BuildUploadURL(resultFilename)  },
+                  { "onComplete", new JObject { new JProperty("verb", "POST"), new JProperty("url", callbackUrl) }}
               },
               null);
             WorkItemsApi workItemApi = new WorkItemsApi();

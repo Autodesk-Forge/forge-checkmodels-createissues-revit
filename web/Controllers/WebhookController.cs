@@ -85,6 +85,7 @@ namespace DesignCheck.Controllers
 
         public class HookInputData
         {
+            public string hubId {get;set;}
             public string href { get; set; }
         }
 
@@ -102,7 +103,7 @@ namespace DesignCheck.Controllers
             if (Credentials == null) { return Unauthorized(); }
 
             DMWebhook webhooksApi = new DMWebhook(Credentials.TokenInternal, CallbackUrl);
-            await webhooksApi.CreateHook(Event.VersionAdded, projectId, folderId);
+            await webhooksApi.CreateHook(Event.VersionAdded, input.hubId, projectId, folderId);
 
             return Ok();
         }
@@ -133,6 +134,7 @@ namespace DesignCheck.Controllers
                 string eventType = body["hook"]["event"].ToString();
                 string userId = body["hook"]["createdBy"].ToString();
                 string projectId = body["hook"]["hookAttribute"]["projectId"].ToString();
+                string hubId = body["hook"]["hookAttribute"]["hubId"].ToString();
                 string versionId = body["resourceUrn"].ToString();
 
                 // do you want to filter events??
@@ -150,7 +152,7 @@ namespace DesignCheck.Controllers
                 */
 
                 // use Hangfire to schedule a job
-                BackgroundJob.Schedule(() => StartDesignCheck(userId, projectId, versionId, _env.ContentRootPath), TimeSpan.FromSeconds(5));
+                BackgroundJob.Schedule(() => StartDesignCheck(userId, hubId, projectId, versionId, _env.ContentRootPath), TimeSpan.FromSeconds(1));
             }
             catch { }
 
@@ -158,29 +160,18 @@ namespace DesignCheck.Controllers
             return Ok();
         }
 
-        public async static Task StartDesignCheck(string userId, string projectId, string versionId, string contentRootPath)
+        public async static Task StartDesignCheck(string userId, string hubId, string projectId, string versionId, string contentRootPath)
         {
             try
             {
                 DesignAutomation4Revit daRevit = new DesignAutomation4Revit();
-                await daRevit.StartDesignCheck(userId, projectId, versionId, contentRootPath);
+                await daRevit.StartDesignCheck(userId, hubId, projectId, versionId, contentRootPath);
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
                 throw; // this should force Hangfire to try again 
             }
-        }
-
-        /// <summary>
-        /// Base64 encode a string (source: http://stackoverflow.com/a/11743162)
-        /// </summary>
-        /// <param name="plainText"></param>
-        /// <returns></returns>
-        public static string Base64Encode(string plainText)
-        {
-            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
-            return System.Convert.ToBase64String(plainTextBytes);
         }
     }
 }

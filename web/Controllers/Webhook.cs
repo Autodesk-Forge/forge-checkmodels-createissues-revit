@@ -60,7 +60,7 @@ namespace DesignCheck.Controllers
         /// http://developer.autodesk.com/en/docs/webhooks/v1/reference/http/systems-system-events-event-hooks-POST/
         /// </summary>
         /// <returns></returns>
-        public async Task<HttpStatusCode> CreateHook(Event eventType, string projectId, string folderId)
+        public async Task<HttpStatusCode> CreateHook(Event eventType, string hubId, string projectId, string folderId)
         {
             dynamic body = new JObject();
             body.callbackUrl = CallbackURL;
@@ -68,6 +68,7 @@ namespace DesignCheck.Controllers
             body.scope.folder = folderId;
             body.hookAttribute = new JObject();
             body.hookAttribute.projectId = projectId;
+            body.hookAttribute.hubId = hubId;
 
             RestRequest request = new RestRequest("/webhooks/v1/systems/data/events/{event}/hooks", Method.POST);
             request.AddParameter("event", EnumToString(eventType), ParameterType.UrlSegment);
