@@ -1,0 +1,53 @@
+<head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=no" />
+    <meta charset="utf-8">
+    <link rel="shortcut icon" href="https://github.com/Autodesk-Forge/learn.forge.viewhubmodels/raw/master/img/favicon.ico">
+    <!-- Common packages: jQuery, Bootstrap, jsTree -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <!-- Autodesk Forge Viewer files -->
+    <link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/style.min.css?v=v6.0"
+        type="text/css">
+    <script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/viewer3D.min.js?v=v6.0"></script>
+    <script src="/js/ForgeViewer.js"></script>
+    <script src="/js/ForgeIssuesExtension.js"></script>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        #forgeViewer {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            background-color: #F0F8FF;
+        }
+
+        .issuesIcon {
+            background-image: url(https://github.com/encharm/Font-Awesome-SVG-PNG/raw/master/white/png/24/exclamation-triangle.png);
+            background-size: 24px;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+            launchViewer(getParameterByName('urn'), undefined, function(viewer, item){
+                viewer.loadExtension('IssuesExtension');
+            });
+        });
+
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+    </script>
+</head>
+
+<body>
+    <div id="forgeViewer"></div>
+</body>

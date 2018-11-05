@@ -18,7 +18,7 @@
 
 var viewerApp;
 
-function launchViewer(urn, viewableId) {
+function launchViewer(urn, viewableId, cb) {
   if (viewerApp != null) {
     var thisviewer = viewerApp.getCurrentViewer();
     if (thisviewer) {
@@ -50,11 +50,11 @@ function launchViewer(urn, viewableId) {
       if (viewableId !== undefined) {
         viewables.forEach(function (viewable) {
           if (viewable.data.viewableID == viewableId)
-            viewerApp.selectItem(viewable.data, onItemLoadSuccess, onItemLoadFail);
+            viewerApp.selectItem(viewable.data, cb, onItemLoadFail);
         });
       }
       else
-        viewerApp.selectItem(viewables[0].data, onItemLoadSuccess, onItemLoadFail);
+        viewerApp.selectItem(viewables[0].data, cb, onItemLoadFail);
     }, onDocumentLoadFailure);
   });
 }

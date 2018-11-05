@@ -80,7 +80,6 @@ namespace DesignCheck.Controllers
             if (!keys.Contains(resultFilename)) return; // file is not there
             await client.DownloadToFilePathAsync(bucketName, resultFilename, results, null);
             string contents = System.IO.File.ReadAllText(results);
-            string uniqueIds = contents.Replace(",", Environment.NewLine);
 
             Credentials credentials = await Credentials.FromDatabaseAsync(userId);
 
@@ -90,12 +89,15 @@ namespace DesignCheck.Controllers
             string itemId = versionItem.data.id;
             int version = Int32.Parse(versionId.Split("_")[1].Base64Decode().Split("=")[1]);
 
+            string title = string.Format("Column clash report for version {0}", version);
+            string description = string.Format("<a href=\"http://localhost:3000/issues/?urn={0}&id={1}\" target=\"_blank\">Click to view issues</a>", versionId, contents.Base64Encode());
+
             // create issues
             BIM360Issues issues = new BIM360Issues();
             string containerId = await issues.GetContainer(credentials.TokenInternal, hubId, projectId);
-            await issues.CreateIssue(credentials.TokenInternal, containerId , itemId,  version,  uniqueIds);
+            await issues.CreateIssue(credentials.TokenInternal, containerId, itemId, version, title, description);
 
-
+            System.IO.File.Delete(resultFilename);
 
             // only delete if it completes
             //await client.DeleteObjectAsync(bucketName, resultFilename);

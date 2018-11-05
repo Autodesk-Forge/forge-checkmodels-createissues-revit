@@ -180,34 +180,21 @@ namespace DesignCheck.Controllers
             return new JObject
             {
                 new JProperty("verb", "PUT"),
-                new JProperty("url", uploadToS3.ToString()) //uploadToS3.GetLeftPart(UriPartial.Path)),
-                //new JProperty("headers", MakeHeaders(WebRequestMethods.Http.Put, uploadToS3))
+                new JProperty("url", uploadToS3.ToString())
             };
-        }
-
-        private JObject MakeHeaders(string verb, Uri query)
-        {
-            // Prepare headers
-            var collection = AWSSignature.SignatureHeader(
-              Amazon.RegionEndpoint.USWest2, query.Host,
-              verb, query.AbsolutePath);
-
-            // organize headers for Design Automation
-            JObject headers = new JObject();
-            foreach (KeyValuePair<string, string> item in collection)
-            {
-                headers.Add(new JProperty(item.Key, item.Value));
-            }
-
-            return headers;
         }
 
         public async Task StartDesignCheck(string userId, string hubId, string projectId, string versionId, string contentRootPath)
         {
-            Credentials credentials = await Credentials.FromDatabaseAsync(userId);
-
             TwoLeggedApi oauth = new TwoLeggedApi();
             string appAccessToken = (await oauth.AuthenticateAsync(Credentials.GetAppSetting("FORGE_CLIENT_ID"), Credentials.GetAppSetting("FORGE_CLIENT_SECRET"), oAuthConstants.CLIENT_CREDENTIALS, new Scope[] { Scope.CodeAll })).ToObject<Bearer>().AccessToken;
+
+            // uncomment these lines to clear all appbundles & activities under your account
+            //Autodesk.Forge.DesignAutomation.v3.ForgeAppsApi forgeAppApi = new ForgeAppsApi();
+            //forgeAppApi.Configuration.AccessToken = appAccessToken;
+            //await forgeAppApi.ForgeAppsDeleteUserAsync("me");
+
+            Credentials credentials = await Credentials.FromDatabaseAsync(userId);
 
             await EnsureAppBundle(appAccessToken, contentRootPath);
             await EnsureActivity(appAccessToken);

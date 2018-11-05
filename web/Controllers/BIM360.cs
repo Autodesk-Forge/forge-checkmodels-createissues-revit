@@ -49,21 +49,21 @@ namespace DesignCheck.Controllers
             return issues.id.ToString();
         }
 
-        public async Task CreateIssue(string userAccessToken, string containerId, string itemId, int version, string description)
+        public async Task CreateIssue(string userAccessToken, string containerId, string itemId, int version, string title, string description)
         {
             dynamic body = new JObject();
             body.data = new JObject();
             body.data.type = "issues";
             body.data.attributes = new JObject();
-            body.data.attributes.title = "Conflicting columns";
+            body.data.attributes.title = title;
             body.data.attributes.description = description;
             body.data.attributes.status = "open";
             body.data.attributes.starting_version = version;
-            body.data.attributes.target_urn = itemId; //"urn:adsk.wipprod:dm.lineage:lB68VnR7SxGNNLcOXDRNtA";
+            body.data.attributes.target_urn = itemId;
             //body.data.attributes.pushpin_attributes = new JObject();
-            //body.data.attributes.pushpin_attributes.object_id="1789";
-            //body.data.attributes.pushpin_attributes.type ="TwoDVectorPushpin";
-            //body.data.attributes.pushpin_attributes.created_doc_version =18;
+            //body.data.attributes.pushpin_attributes.object_id = dbId;
+            //body.data.attributes.pushpin_attributes.type = "TwoDVectorPushpin";
+            //body.data.attributes.pushpin_attributes.created_doc_version = version;
 
 
             RestClient client = new RestClient(BASE_URL);
@@ -73,7 +73,7 @@ namespace DesignCheck.Controllers
             request.AddHeader("Content-Type", "application/vnd.api+json");
             request.AddParameter("text/json", Newtonsoft.Json.JsonConvert.SerializeObject(body), ParameterType.RequestBody);
 
-            var respons = await client.ExecuteTaskAsync(request);
+            var res = await client.ExecuteTaskAsync(request);
         }
     }
 }
