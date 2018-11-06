@@ -84,10 +84,10 @@ namespace DesignCheck.Controllers
                 switch ((string)hubInfo.Value.attributes.extension.type)
                 {
                     case "hubs:autodesk.core:Hub":
-                        nodeType = "hubs"; // if showing only BIM 360, mark this as 'unsupported'
+                        nodeType = "unsupported"; // if showing only BIM 360, mark this as 'unsupported'
                         break;
                     case "hubs:autodesk.a360:PersonalHub":
-                        nodeType = "personalHub"; // if showing only BIM 360, mark this as 'unsupported'
+                        nodeType = "unsupported"; // if showing only BIM 360, mark this as 'unsupported'
                         break;
                     case "hubs:autodesk.bim360:Account":
                         nodeType = "bim360Hubs";
