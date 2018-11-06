@@ -1,7 +1,7 @@
 {
-    "name": "data.management-csharp-webhook",
+    "name": "design.automation-csharp-revit.check.issues",
     "description": "Webhooks for Data Management hubs",
-    "repository": "https://github.com/autodesk-forge/data.management-csharp-webhook",
+    "repository": "https://github.com/augustogoncalves/design.automation-csharp-revit.check.issues",
     "logo": "https://avatars0.githubusercontent.com/u/8017462?v=3&s=200",
     "keywords": [
         "autodesk",
@@ -20,9 +20,9 @@
             "description": "Callback URL of your Forge app, required for 3-legged OAuth",
             "value": "https://<<YOUR HEROKU APP NAME HERE>>.herokuapp.com/api/forge/callback/oauth"
         },
-        "FORGE_WEBHOOK_CALLBACK_URL": {
+        "FORGE_WEBHOOK_CALLBACK_HOST": {
             "description": "Callback URL of your webhook",
-            "value": "http://<<YOUR HEROKU APP NAME HERE>>/api/forge/callback/webhook"
+            "value": "http://<<YOUR HEROKU APP NAME HERE>>.herokuapp.com"
         },
         "OAUTH_DATABASE": {
             "description": "MongoDB connection string, e.g frmm mLab",
