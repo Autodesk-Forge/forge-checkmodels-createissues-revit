@@ -20,6 +20,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DesignCheck.Controllers
@@ -45,7 +46,7 @@ namespace DesignCheck.Controllers
         {
             get
             {
-                if (_database == null) _database = Client.GetDatabase("desktopcloudsample");
+                if (_database == null) _database = Client.GetDatabase(OAuthDatabase.Split('/').Last());
                 return _database;
             }
         }
