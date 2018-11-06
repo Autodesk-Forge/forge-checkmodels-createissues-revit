@@ -16,6 +16,7 @@
 // UNINTERRUPTED OR ERROR FREE.
 /////////////////////////////////////////////////////////////////////
 
+using Amazon.Runtime;
 using Amazon.S3;
 using Autodesk.Forge;
 using Autodesk.Forge.DesignAutomation.v3;
@@ -168,7 +169,8 @@ namespace DesignCheck.Controllers
         private async Task<JObject> BuildUploadURL(string resultFilename)
         {
             string bucketName = "revitdesigncheck" + NickName.ToLower();
-            IAmazonS3 client = new AmazonS3Client(Amazon.RegionEndpoint.USWest2);
+            var awsCredentials = new Amazon.Runtime.BasicAWSCredentials(Credentials.GetAppSetting("AWS_ACCESS_KEY"), Credentials.GetAppSetting("AWS_SECRET_KEY"));
+            IAmazonS3 client = new AmazonS3Client(awsCredentials, Amazon.RegionEndpoint.USWest2);
 
             if (!await client.DoesS3BucketExistAsync(bucketName))
                 await client.EnsureBucketExistsAsync(bucketName);

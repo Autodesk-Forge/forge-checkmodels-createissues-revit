@@ -65,7 +65,8 @@ namespace DesignCheck.Controllers
         public async Task CreateIssues(string userId, string hubId, string projectId, string versionId, string contentRootPath)
         {
             string bucketName = "revitdesigncheck" + DesignAutomation4Revit.NickName.ToLower();
-            IAmazonS3 client = new AmazonS3Client(Amazon.RegionEndpoint.USWest2);
+            var awsCredentials = new Amazon.Runtime.BasicAWSCredentials(Credentials.GetAppSetting("AWS_ACCESS_KEY"), Credentials.GetAppSetting("AWS_SECRET_KEY")); 
+            IAmazonS3 client = new AmazonS3Client(awsCredentials, Amazon.RegionEndpoint.USWest2);
 
             string resultFilename = versionId + ".txt";
 
