@@ -152,7 +152,7 @@ namespace DesignCheck.Controllers
                 */
 
                 // use Hangfire to schedule a job
-                BackgroundJob.Schedule(() => StartDesignCheck(userId, hubId, projectId, versionId, string.Format("{0}/Controllers/", _env.WebRootPath)), TimeSpan.FromSeconds(1));
+                BackgroundJob.Schedule(() => StartDesignCheck(userId, hubId, projectId, versionId, _env.WebRootPath), TimeSpan.FromSeconds(1));
             }
             catch { }
 

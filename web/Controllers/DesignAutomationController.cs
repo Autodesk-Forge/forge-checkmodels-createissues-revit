@@ -54,7 +54,7 @@ namespace DesignCheck.Controllers
                 */
 
                 // use Hangfire to schedule a job
-                BackgroundJob.Schedule(() => CreateIssues(userId, hubId, projectId, versionId, string.Format("{0}/Controllers/", _env.WebRootPath)), TimeSpan.FromSeconds(1));
+                BackgroundJob.Schedule(() => CreateIssues(userId, hubId, projectId, versionId, _env.WebRootPath), TimeSpan.FromSeconds(1));
             }
             catch { }
 
@@ -97,10 +97,9 @@ namespace DesignCheck.Controllers
             string containerId = await issues.GetContainer(credentials.TokenInternal, hubId, projectId);
             await issues.CreateIssue(credentials.TokenInternal, containerId, itemId, version, title, description);
 
-            System.IO.File.Delete(resultFilename);
-
             // only delete if it completes
-            //await client.DeleteObjectAsync(bucketName, resultFilename);
+            System.IO.File.Delete(resultFilename);
+            await client.DeleteObjectAsync(bucketName, resultFilename);
         }
     }
 }
