@@ -54,7 +54,7 @@ namespace DesignCheck.Controllers
                 */
 
                 // use Hangfire to schedule a job
-                BackgroundJob.Schedule(() => CreateIssues(userId, hubId, projectId, versionId, _env.WebRootPath), TimeSpan.FromSeconds(1));
+                BackgroundJob.Schedule(() => CreateIssues(userId, hubId, projectId, versionId, _env.WebRootPath, Request.Host.ToString()), TimeSpan.FromSeconds(1));
             }
             catch { }
 
@@ -62,10 +62,10 @@ namespace DesignCheck.Controllers
             return Ok();
         }
 
-        public async Task CreateIssues(string userId, string hubId, string projectId, string versionId, string contentRootPath)
+        public async Task CreateIssues(string userId, string hubId, string projectId, string versionId, string contentRootPath, string host)
         {
             string bucketName = "revitdesigncheck" + DesignAutomation4Revit.NickName.ToLower();
-            var awsCredentials = new Amazon.Runtime.BasicAWSCredentials(Credentials.GetAppSetting("AWS_ACCESS_KEY"), Credentials.GetAppSetting("AWS_SECRET_KEY")); 
+            var awsCredentials = new Amazon.Runtime.BasicAWSCredentials(Credentials.GetAppSetting("AWS_ACCESS_KEY"), Credentials.GetAppSetting("AWS_SECRET_KEY"));
             IAmazonS3 client = new AmazonS3Client(awsCredentials, Amazon.RegionEndpoint.USWest2);
 
             string resultFilename = versionId + ".txt";
@@ -91,7 +91,7 @@ namespace DesignCheck.Controllers
             int version = Int32.Parse(versionId.Split("_")[1].Base64Decode().Split("=")[1]);
 
             string title = string.Format("Column clash report for version {0}", version);
-            string description = string.Format("<a href=\"http://localhost:3000/issues/?urn={0}&id={1}\" target=\"_blank\">Click to view issues</a>", versionId, contents.Base64Encode());
+            string description = string.Format("<a href=\"http://{0}/issues/?urn={1}&id={2}\" target=\"_blank\">Click to view issues</a>", host, versionId, contents.Base64Encode());
 
             // create issues
             BIM360Issues issues = new BIM360Issues();
