@@ -26,8 +26,7 @@ This sample is based on [this Webhook sample](https://github.com/Autodesk-Forge/
 
 ## Demonstration
 
-There a few moving parts on this sample, [this video](https://www.youtube.com/watch?v=) demonstrates the sample.
-
+Watch video at [this video](https://www.youtube.com/watch?v=twaGbEbGV2Q).
 # Setup
 
 ## Prerequisites
@@ -37,7 +36,8 @@ There a few moving parts on this sample, [this video](https://www.youtube.com/wa
 3. **.NET Core** basic knowledge with C#
 4. **ngrok**: Routing tool, [download here](https://ngrok.com/)
 5. **MongoDB**: noSQL database, [learn more](https://www.mongodb.com/). Or use a online version via [mLab](https://mlab.com/) (this is used on this sample)
-6. **Revit** 2019: required to compile changes into the plugin
+6. **AWS Account**: S3 buckets are used to store result files
+7. **Revit** 2019: required to compile changes into the plugin
 
 ## Running locally
 
@@ -71,6 +71,10 @@ At this point the connection string should be in the form of `mongodb://<dbuser>
 
 There are several tools to view your database, [Robo 3T](https://robomongo.org/) (formerly Robomongo) is a free lightweight GUI that can be used. When it opens, click on **Create**, then at **Connection** specify a `name`, enter your `ds<number>.mlab.com` as address and `<port>` number as port, also at **Authentication** enter the datbase name (e.g. `designcheck `) and `<dbuser>` and `<dbpassword>`.
 
+**AWS Account**
+
+Create an AWS Account, allow API Access, the `access key` and `secret key` will be used on this sample.
+
 **Environment variables**
 
 At the `.vscode\launch.json`, find the env vars and add your Forge Client ID, Secret and callback URL. Also define the `ASPNETCORE_URLS` variable. The end result should be as shown below:
@@ -83,7 +87,9 @@ At the `.vscode\launch.json`, find the env vars and add your Forge Client ID, Se
     "FORGE_CLIENT_SECRET": "your secret here",
     "FORGE_CALLBACK_URL": "http://localhost:3000/api/forge/callback/oauth",
     "OAUTH_DATABASE": "mongodb://<dbuser>:<dbpassword>@ds<number>.mlab.com:<port>/designcheck",
-    "FORGE_WEBHOOK_CALLBACK_HOST": "http://1234.ngrok.io"
+    "FORGE_WEBHOOK_CALLBACK_HOST": "http://1234.ngrok.io",
+    "AWS_ACCESS_KEY": "your AWS access key here",
+    "AWS_SECRET_KEY": "your AWS secret key here"
 },
 ```
 

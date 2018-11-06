@@ -27,6 +27,14 @@
         "OAUTH_DATABASE": {
             "description": "MongoDB connection string, e.g frmm mLab",
             "value": "mongodb://user:password@ds1234.mlab.com:6789/databaseName"
+        },
+        "AWS_ACCESS_KEY": {
+            "description": "AWS Access key",
+            "value": ""
+        },
+        "AWS_SECRET_KEY": {
+            "description": "AWS Secrete Key",
+            "value": ""
         }
     },
     "website": "https://developer.autodesk.com/",
