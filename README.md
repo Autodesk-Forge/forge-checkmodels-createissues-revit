@@ -26,7 +26,7 @@ This sample is based on [this Webhook sample](https://github.com/Autodesk-Forge/
 
 ## Demonstration
 
-Watch video at [this video](https://www.youtube.com/watch?v=twaGbEbGV2Q).
+What's the recording at [Youtube](https://www.youtube.com/watch?v=j9EgshGh2is).
 # Setup
 
 ## Prerequisites
@@ -87,15 +87,19 @@ At the `.vscode\launch.json`, find the env vars and add your Forge Client ID, Se
     "FORGE_CLIENT_SECRET": "your secret here",
     "FORGE_CALLBACK_URL": "http://localhost:3000/api/forge/callback/oauth",
     "OAUTH_DATABASE": "mongodb://<dbuser>:<dbpassword>@ds<number>.mlab.com:<port>/designcheck",
-    "FORGE_WEBHOOK_CALLBACK_HOST": "http://1234.ngrok.io",
+    "FORGE_WEBHOOK_CALLBACK_HOST": "your ngrok address here: e.g. http://abcd1234.ngrok.io",
     "AWS_ACCESS_KEY": "your AWS access key here",
     "AWS_SECRET_KEY": "your AWS secret key here"
 },
 ```
 
-Open `http://localhost:3000` to start the app.
+A compiled version of the `Revit` plugin (.bundles) is included on the `web` module folder. Any changes on these plugins will require to create a new .bundle as a .zip file. The file name is hardcoded.
 
-Open `http://localhost:3000/hangfire` for jobs dashboard.
+Run `ngrok http 3000` to create a tunnel to your local machine, then copy the address into the `FORGE_WEBHOOK_CALLBACK_HOST` environment variable.
+
+Start the app.
+
+Open `http://localhost:3000` to start the app, select a folder to start monitoring. Upload a new version of the Revit file (see `/samples` folder) and the process should start.You can monitor the Jobs via Hangfire dashboard: `http://localhost:3000/hangfire`. 
 
 ## Deployment
 
