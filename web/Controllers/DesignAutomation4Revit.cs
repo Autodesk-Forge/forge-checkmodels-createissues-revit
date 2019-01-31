@@ -16,23 +16,26 @@
 // UNINTERRUPTED OR ERROR FREE.
 /////////////////////////////////////////////////////////////////////
 
-using Amazon.Runtime;
 using Amazon.S3;
 using Autodesk.Forge;
-using Autodesk.Forge.DesignAutomation.v3;
+using Autodesk.Forge.Core;
+using Autodesk.Forge.DesignAutomation;
+using Autodesk.Forge.DesignAutomation.Model;
 using Autodesk.Forge.Model;
-using Autodesk.Forge.Model.DesignAutomation.v3;
-using Newtonsoft.Json.Linq;
 using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
-using ActivitiesApi = Autodesk.Forge.DesignAutomation.v3.ActivitiesApi;
-using Activity = Autodesk.Forge.Model.DesignAutomation.v3.Activity;
-using WorkItem = Autodesk.Forge.Model.DesignAutomation.v3.WorkItem;
-using WorkItemsApi = Autodesk.Forge.DesignAutomation.v3.WorkItemsApi;
+using Activity = Autodesk.Forge.DesignAutomation.Model.Activity;
+using Alias = Autodesk.Forge.DesignAutomation.Model.Alias;
+using AppBundle = Autodesk.Forge.DesignAutomation.Model.AppBundle;
+using Parameter = Autodesk.Forge.DesignAutomation.Model.Parameter;
+using WorkItem = Autodesk.Forge.DesignAutomation.Model.WorkItem;
+using WorkItemStatus = Autodesk.Forge.DesignAutomation.Model.WorkItemStatus;
+
+
 
 namespace DesignCheck.Controllers
 {
@@ -41,31 +44,41 @@ namespace DesignCheck.Controllers
         private const string APPNAME = "FindColumnsApp";
         private const string APPBUNBLENAME = "FindColumnsAppBundle.zip";
         private const string ACTIVITY_NAME = "FindColumnsActivity";
-        private const string ALIAS = "v1";
+        private const string ENGINE_NAME = "Autodesk.Revit+2019";
 
-        public static string NickName
+        /// Prefix for AppBundles and Activities
+        public static string NickName { get { return Credentials.GetAppSetting("FORGE_CLIENT_ID"); } }
+        /// Alias for the app (e.g. DEV, STG, PROD). This value may come from an environment variable
+        public static string Alias { get { return "dev"; } }
+        // Design Automation v3 API
+        private DesignAutomationClient _designAutomation;
+
+        public DesignAutomation4Revit()
         {
-            get
-            {
-                return Credentials.GetAppSetting("FORGE_CLIENT_ID");
-            }
+            // need to initialize manually as this class runs in background
+            ForgeService service =
+                new ForgeService(
+                    new HttpClient(
+                        new ForgeHandler(Microsoft.Extensions.Options.Options.Create(new ForgeConfiguration()
+                        {
+                            ClientId = Credentials.GetAppSetting("FORGE_CLIENT_ID"),
+                            ClientSecret = Credentials.GetAppSetting("FORGE_CLIENT_SECRET")
+                        }))
+                        {
+                            InnerHandler = new HttpClientHandler()
+                        })
+                );
+            _designAutomation = new DesignAutomationClient(service);
         }
 
         public async Task EnsureAppBundle(string appAccessToken, string contentRootPath)
         {
-            //List<string> apps = await da.GetAppBundles(nickName);
-            AppBundlesApi appBundlesApi = new AppBundlesApi();
-            appBundlesApi.Configuration.AccessToken = appAccessToken;
-
-            // at this point we can either call get by alias/id and catch or get a list and check
-            //dynamic appBundle = await appBundlesApi.AppbundlesByIdAliasesByAliasIdGetAsync(APPNAME, ALIAS);
-
-            // or get the list and check for the name
-            PageString appBundles = await appBundlesApi.AppBundlesGetItemsAsync();
+            // get the list and check for the name
+            Page<string> appBundles = await _designAutomation.GetAppBundlesAsync();
             bool existAppBundle = false;
             foreach (string appName in appBundles.Data)
             {
-                if (appName.Contains(string.Format("{0}.{1}+{2}", NickName, APPNAME, ALIAS)))
+                if (appName.Contains(string.Format("{0}.{1}+{2}", NickName, APPNAME, Alias)))
                 {
                     existAppBundle = true;
                     continue;
@@ -75,40 +88,51 @@ namespace DesignCheck.Controllers
             if (!existAppBundle)
             {
                 // check if ZIP with bundle is here
-                string packageZipPath = Path.Combine(contentRootPath, APPBUNBLENAME);
-                if (!System.IO.File.Exists(packageZipPath)) throw new Exception("FindColumns appbundle not found at " + packageZipPath);
+                string packageZipPath = Path.Combine(contentRootPath + "/bundles/", APPBUNBLENAME);
+                if (!File.Exists(packageZipPath)) throw new Exception("FindColumns appbundle not found at " + packageZipPath);
 
-                // create bundle
-                AppBundle appBundleSpec = new AppBundle(APPNAME, null, "Autodesk.Revit+2019", null, null, APPNAME, null, APPNAME);
-                AppBundle newApp = await appBundlesApi.AppBundlesCreateItemAsync(appBundleSpec);
-                if (newApp == null) throw new Exception("Cannot create new app");
+                AppBundle appBundleSpec = new AppBundle()
+                {
+                    Package = APPNAME,
+                    Engine = ENGINE_NAME,
+                    Id = APPNAME,
+                    Description = string.Format("Description for {0}", APPBUNBLENAME),
 
-                // create alias
-                Alias aliasSpec = new Alias(1, null, ALIAS);
-                Alias newAlias = await appBundlesApi.AppBundlesCreateAliasAsync(APPNAME, aliasSpec);
+                };
+                AppBundle newAppVersion = null;
+                try
+                {
+                    newAppVersion = await _designAutomation.CreateAppBundleAsync(appBundleSpec);
+                    
+                }
+                catch(Exception e)
+                { };
+
+                if (newAppVersion == null) throw new Exception("Cannot create new app");
+
+                // create alias pointing to v1
+                Alias aliasSpec = new Alias() { Id = Alias, Version = 1 };
+                Alias newAlias = await _designAutomation.CreateAppBundleAliasAsync(APPNAME, aliasSpec);
 
                 // upload the zip with .bundle
-                RestClient uploadClient = new RestClient(newApp.UploadParameters.EndpointURL);
+                RestClient uploadClient = new RestClient(newAppVersion.UploadParameters.EndpointURL);
                 RestRequest request = new RestRequest(string.Empty, Method.POST);
                 request.AlwaysMultipartFormData = true;
-                foreach (KeyValuePair<string, object> x in newApp.UploadParameters.FormData)
-                    request.AddParameter(x.Key, x.Value);
+                foreach (KeyValuePair<string, string> x in newAppVersion.UploadParameters.FormData) request.AddParameter(x.Key, x.Value);
                 request.AddFile("file", packageZipPath);
                 request.AddHeader("Cache-Control", "no-cache");
-                var res = await uploadClient.ExecuteTaskAsync(request);
+                await uploadClient.ExecuteTaskAsync(request);
             }
         }
 
         public async Task EnsureActivity(string appAccessToken)
         {
-            ActivitiesApi activitiesApi = new ActivitiesApi();
-            activitiesApi.Configuration.AccessToken = appAccessToken;
-            PageString activities = await activitiesApi.ActivitiesGetItemsAsync();
+            Page<string> activities = await _designAutomation.GetActivitiesAsync();
 
             bool existActivity = false;
             foreach (string activity in activities.Data)
             {
-                if (activity.Contains(string.Format("{0}.{1}+{2}", NickName, ACTIVITY_NAME, ALIAS)))
+                if (activity.Contains(string.Format("{0}.{1}+{2}", NickName, ACTIVITY_NAME, Alias)))
                 {
                     existActivity = true;
                     continue;
@@ -117,33 +141,35 @@ namespace DesignCheck.Controllers
 
             if (!existActivity)
             {
-                // create activity
                 string commandLine = string.Format(@"$(engine.path)\\revitcoreconsole.exe /i $(args[rvtFile].path) /al $(appbundles[{0}].path)", APPNAME);
-                ModelParameter rvtFile = new ModelParameter(false, false, ModelParameter.VerbEnum.Get, "Input Revit File", true, "$(rvtFile)");
-                //ModelParameter parameterInput = new ModelParameter(false, false, ModelParameter.VerbEnum.Get, "JSON input", false, "params.json");
-                ModelParameter result = new ModelParameter(false, false, ModelParameter.VerbEnum.Put, "Resulting JSON File", true, "result.txt");
-                Activity activitySpec = new Activity(
-                  new List<string>() { commandLine },
-                  new Dictionary<string, ModelParameter>() {
-                    { "rvtFile", rvtFile },
-                    //{ "parameterInput", parameterInput },
-                    { "result", result }
-                  },
-                  "Autodesk.Revit+2019",
-                  new List<string>() { string.Format("{0}.{1}+{2}", NickName, APPNAME, ALIAS) },
-                  null,
-                  ACTIVITY_NAME,
-                  null,
-                  ACTIVITY_NAME);
-                Activity newActivity = await activitiesApi.ActivitiesCreateItemAsync(activitySpec);
+                Activity activitySpec = new Activity()
+                {
+                    Id = ACTIVITY_NAME,
+                    Appbundles = new List<string>() { string.Format("{0}.{1}+{2}", NickName, APPNAME, Alias) },
+                    CommandLine = new List<string>() { commandLine },
+                    Engine = ENGINE_NAME,
+                    Parameters = new Dictionary<string, Parameter>()
+                    {
+                        { "rvtFile", new Parameter() { Description = "Input Revit File", LocalName = "$(rvtFile)", Ondemand = false, Required = true, Verb = Verb.Get, Zip = false } },
+                        { "result", new Parameter() { Description = "Resulting JSON File", LocalName = "result.txt", Ondemand = false, Required = true, Verb = Verb.Put, Zip = false } }
+                    }
+                };
+                try
+                {
+                    Activity newActivity = await _designAutomation.CreateActivityAsync(activitySpec);
+                }
+                catch(Exception ex)
+                {
 
-                // create alias
-                Alias aliasSpec = new Alias(1, null, ALIAS);
-                Alias newAlias = await activitiesApi.ActivitiesCreateAliasAsync(ACTIVITY_NAME, aliasSpec);
+                }
+
+                // specify the alias for this Activity
+                Alias aliasSpec = new Alias() { Id = Alias, Version = 1 };
+                Alias newAlias = await _designAutomation.CreateActivityAliasAsync(ACTIVITY_NAME, aliasSpec);
             }
         }
 
-        private async Task<JObject> BuildDownloadURL(string userAccessToken, string projectId, string versionId)
+        private async Task<XrefTreeArgument> BuildDownloadURL(string userAccessToken, string projectId, string versionId)
         {
             VersionsApi versionApi = new VersionsApi();
             versionApi.Configuration.AccessToken = userAccessToken;
@@ -156,17 +182,17 @@ namespace DesignCheck.Controllers
             string objectName = versionItemParams[versionItemParams.Length - 1];
             string downloadUrl = string.Format("https://developer.api.autodesk.com/oss/v2/buckets/{0}/objects/{1}", bucketKey, objectName);
 
-            return new JObject
+            return new XrefTreeArgument()
             {
-                new JProperty("url", downloadUrl),
-                new JProperty("headers",
-                new JObject{
-                    new JProperty("Authorization", "Bearer " + userAccessToken)
-                })
+                Url = downloadUrl,
+                Headers = new Dictionary<string, string>()
+                {
+                    { "Authorization", "Bearer " + userAccessToken }
+                }
             };
         }
 
-        private async Task<JObject> BuildUploadURL(string resultFilename)
+        private async Task<XrefTreeArgument> BuildUploadURL(string resultFilename)
         {
             string bucketName = "revitdesigncheck" + NickName.ToLower();
             var awsCredentials = new Amazon.Runtime.BasicAWSCredentials(Credentials.GetAppSetting("AWS_ACCESS_KEY"), Credentials.GetAppSetting("AWS_SECRET_KEY"));
@@ -179,10 +205,14 @@ namespace DesignCheck.Controllers
             props.Add("Verb", "PUT");
             Uri uploadToS3 = new Uri(client.GeneratePreSignedURL(bucketName, resultFilename, DateTime.Now.AddMinutes(10), props));
 
-            return new JObject
+            return new XrefTreeArgument()
             {
-                new JProperty("verb", "PUT"),
-                new JProperty("url", uploadToS3.ToString())
+                Url = uploadToS3.ToString(),
+                Verb = Verb.Put
+                //Headers = new Dictionary<string, string>()
+                //{
+                //    {"Authorization", "Bearer " + tokenHere }
+                //}
             };
         }
 
@@ -192,9 +222,7 @@ namespace DesignCheck.Controllers
             string appAccessToken = (await oauth.AuthenticateAsync(Credentials.GetAppSetting("FORGE_CLIENT_ID"), Credentials.GetAppSetting("FORGE_CLIENT_SECRET"), oAuthConstants.CLIENT_CREDENTIALS, new Scope[] { Scope.CodeAll })).ToObject<Bearer>().AccessToken;
 
             // uncomment these lines to clear all appbundles & activities under your account
-            //Autodesk.Forge.DesignAutomation.v3.ForgeAppsApi forgeAppApi = new ForgeAppsApi();
-            //forgeAppApi.Configuration.AccessToken = appAccessToken;
-            //await forgeAppApi.ForgeAppsDeleteUserAsync("me");
+            if (false) await _designAutomation.DeleteForgeAppAsync("me");
 
             Credentials credentials = await Credentials.FromDatabaseAsync(userId);
 
@@ -203,19 +231,18 @@ namespace DesignCheck.Controllers
 
             string resultFilename = versionId.Base64Encode() + ".txt";
             string callbackUrl = string.Format("{0}/api/forge/callback/designautomation/{1}/{2}/{3}/{4}", Credentials.GetAppSetting("FORGE_WEBHOOK_CALLBACK_HOST"), userId, hubId, projectId, versionId.Base64Encode());
-            WorkItem workItemSpec = new WorkItem(
-              null,
-              string.Format("{0}.{1}+{2}", NickName, ACTIVITY_NAME, ALIAS),
-              new Dictionary<string, JObject>()
-              {
-                  { "rvtFile", await BuildDownloadURL(credentials.TokenInternal, projectId, versionId) },
-                  { "result", await BuildUploadURL(resultFilename)  },
-                  { "onComplete", new JObject { new JProperty("verb", "POST"), new JProperty("url", callbackUrl) }}
-              },
-              null);
-            WorkItemsApi workItemApi = new WorkItemsApi();
-            workItemApi.Configuration.AccessToken = appAccessToken;
-            WorkItemStatus newWorkItem = await workItemApi.WorkItemsCreateWorkItemsAsync(null, null, workItemSpec);
+
+            WorkItem workItemSpec = new WorkItem()
+            {
+                ActivityId = string.Format("{0}.{1}+{2}", NickName, ACTIVITY_NAME, Alias),
+                Arguments = new Dictionary<string, IArgument>()
+                {
+                    { "rvtFile", await BuildDownloadURL(credentials.TokenInternal, projectId, versionId) },
+                    { "result",  await BuildUploadURL(resultFilename) },
+                    { "onComplete", new XrefTreeArgument { Verb = Verb.Post, Url = callbackUrl } }
+                }
+            };
+            WorkItemStatus workItemStatus = await _designAutomation.CreateWorkItemsAsync(workItemSpec);
         }
     }
 }
