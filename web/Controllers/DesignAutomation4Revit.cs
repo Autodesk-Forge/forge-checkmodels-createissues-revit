@@ -42,7 +42,7 @@ namespace DesignCheck.Controllers
     public class DesignAutomation4Revit
     {
         private const string APPNAME = "FindColumnsApp";
-        private const string APPBUNBLENAME = "FindColumnsAppBundle.zip";
+        private const string APPBUNBLENAME = "FindColumnsIO.zip";
         private const string ACTIVITY_NAME = "FindColumnsActivity";
         private const string ENGINE_NAME = "Autodesk.Revit+2019";
 
@@ -222,7 +222,7 @@ namespace DesignCheck.Controllers
             string appAccessToken = (await oauth.AuthenticateAsync(Credentials.GetAppSetting("FORGE_CLIENT_ID"), Credentials.GetAppSetting("FORGE_CLIENT_SECRET"), oAuthConstants.CLIENT_CREDENTIALS, new Scope[] { Scope.CodeAll })).ToObject<Bearer>().AccessToken;
 
             // uncomment these lines to clear all appbundles & activities under your account
-            if (false) await _designAutomation.DeleteForgeAppAsync("me");
+            //await _designAutomation.DeleteForgeAppAsync("me");
 
             Credentials credentials = await Credentials.FromDatabaseAsync(userId);
 

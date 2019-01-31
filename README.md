@@ -27,6 +27,7 @@ This sample is based on [this Webhook sample](https://github.com/Autodesk-Forge/
 ## Demonstration
 
 What's the recording at [Youtube](https://www.youtube.com/watch?v=j9EgshGh2is).
+
 # Setup
 
 ## Prerequisites
@@ -75,6 +76,10 @@ There are several tools to view your database, [Robo 3T](https://robomongo.org/)
 
 Create an AWS Account, allow API Access, the `access key` and `secret key` will be used on this sample.
 
+**ngrok**
+
+Run `ngrok http 3000` to create a tunnel to your local machine, then copy the address into the `FORGE_WEBHOOK_CALLBACK_HOST` environment variable.
+
 **Environment variables**
 
 At the `.vscode\launch.json`, find the env vars and add your Forge Client ID, Secret and callback URL. Also define the `ASPNETCORE_URLS` variable. The end result should be as shown below:
@@ -93,9 +98,9 @@ At the `.vscode\launch.json`, find the env vars and add your Forge Client ID, Se
 },
 ```
 
-A compiled version of the `Revit` plugin (.bundles) is included on the `web` module folder. Any changes on these plugins will require to create a new .bundle as a .zip file. The file name is hardcoded.
+**Revit plugin**
 
-Run `ngrok http 3000` to create a tunnel to your local machine, then copy the address into the `FORGE_WEBHOOK_CALLBACK_HOST` environment variable.
+A compiled version of the `Revit` plugin (.bundles) is included on the `web` module, under `wwwroot/bundles` folder. Any changes on these plugins will require to create a new .bundle, the **Post-build** event should create it.
 
 Start the app.
 
