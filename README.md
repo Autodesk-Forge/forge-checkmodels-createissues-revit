@@ -18,7 +18,7 @@
 
 This sample monitors a BIM 360 Folder for `version.added` event, when a new RVT file (or version) is uploaded, it triggers `Design Automation` for Revit to perform a basic design check, which generates a list of `externalId` of elements that did not pass the check. This information is used to create a BIM 360 Issue, which appears on BIM 360 UI with a link to a customer Viewer to display the elements with issues.
 
-This sample is based on [this Webhook sample](https://github.com/Autodesk-Forge/data.management-csharp-webhook). Learn more about Webhooks and 3-legged Refresh & Access Token at [this blog post](https://forge.autodesk.com/blog/webhooks-and-bim-360-c).
+This sample is based on [this Webhook sample](https://github.com/Autodesk-Forge/data.management-csharp-webhook). Learn more about Webhooks and 3-legged Refresh & Access Token at [this blog post](https://forge.autodesk.com/blog/webhooks-and-bim-360-c). Also based on the [Learn Forge Tutorial](http://learnforge.autodesk.io).
 
 ## Thumbnail
 
@@ -44,7 +44,7 @@ What's the recording at [Youtube](https://www.youtube.com/watch?v=j9EgshGh2is).
 
 Clone this project or download it. It's recommended to install [GitHub desktop](https://desktop.github.com/). To clone it via command line, use the following (**Terminal** on MacOSX/Linux, **Git Shell** on Windows):
 
-    git clone https://github.com/augustogoncalves/design.automation-csharp-revit.check.issues
+    git clone https://github.com/autodesk-forge/design.automation-csharp-revit.check.issues
 
 
 **Visual Studio** (Windows):
@@ -100,7 +100,7 @@ At the `.vscode\launch.json`, find the env vars and add your Forge Client ID, Se
 
 **Revit plugin**
 
-A compiled version of the `Revit` plugin (.bundles) is included on the `web` module, under `wwwroot/bundles` folder. Any changes on these plugins will require to create a new .bundle, the **Post-build** event should create it.
+A compiled version of the `Revit` plugin (.bundles) is included on the `web` module, under `wwwroot/bundles` folder. Any changes on these plugins will require to create a new .bundle, the **Post-build** event should create it. Please [review the readme](https://github.com/Autodesk-Forge/design.automation-csharp-revit.check.issues/tree/master/revit).
 
 Start the app.
 
