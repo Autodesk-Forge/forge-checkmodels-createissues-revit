@@ -21,7 +21,6 @@ using Autodesk.Forge;
 using Autodesk.Forge.Core;
 using Autodesk.Forge.DesignAutomation;
 using Autodesk.Forge.DesignAutomation.Model;
-using Autodesk.Forge.Model;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -46,6 +45,10 @@ namespace DesignCheck.Controllers
         private const string ACTIVITY_NAME = "FindColumnsActivity";
         private const string ENGINE_NAME = "Autodesk.Revit+2019";
 
+        /// NickName.AppBundle+Alias
+        private string AppBundleFullName { get { return string.Format("{0}.{1}+{2}", Utils.NickName, ACTIVITY_NAME, Alias); } }
+        /// NickName.Activity+Alias
+        private string ActivityFullName { get { return string.Format("{0}.{1}+{2}", Utils.NickName, ACTIVITY_NAME, Alias); } }
         /// Prefix for AppBundles and Activities
         public static string NickName { get { return Credentials.GetAppSetting("FORGE_CLIENT_ID"); } }
         /// Alias for the app (e.g. DEV, STG, PROD). This value may come from an environment variable
@@ -71,14 +74,14 @@ namespace DesignCheck.Controllers
             _designAutomation = new DesignAutomationClient(service);
         }
 
-        public async Task EnsureAppBundle(string appAccessToken, string contentRootPath)
+        public async Task EnsureAppBundle(string contentRootPath)
         {
             // get the list and check for the name
             Page<string> appBundles = await _designAutomation.GetAppBundlesAsync();
             bool existAppBundle = false;
             foreach (string appName in appBundles.Data)
             {
-                if (appName.Contains(string.Format("{0}.{1}+{2}", NickName, APPNAME, Alias)))
+                if (appName.Contains(AppBundleFullName))
                 {
                     existAppBundle = true;
                     continue;
@@ -99,15 +102,7 @@ namespace DesignCheck.Controllers
                     Description = string.Format("Description for {0}", APPBUNBLENAME),
 
                 };
-                AppBundle newAppVersion = null;
-                try
-                {
-                    newAppVersion = await _designAutomation.CreateAppBundleAsync(appBundleSpec);
-                    
-                }
-                catch(Exception e)
-                { };
-
+                AppBundle newAppVersion = await _designAutomation.CreateAppBundleAsync(appBundleSpec);
                 if (newAppVersion == null) throw new Exception("Cannot create new app");
 
                 // create alias pointing to v1
@@ -125,14 +120,14 @@ namespace DesignCheck.Controllers
             }
         }
 
-        public async Task EnsureActivity(string appAccessToken)
+        public async Task EnsureActivity()
         {
             Page<string> activities = await _designAutomation.GetActivitiesAsync();
 
             bool existActivity = false;
             foreach (string activity in activities.Data)
             {
-                if (activity.Contains(string.Format("{0}.{1}+{2}", NickName, ACTIVITY_NAME, Alias)))
+                if (activity.Contains(ActivityFullName))
                 {
                     existActivity = true;
                     continue;
@@ -145,7 +140,7 @@ namespace DesignCheck.Controllers
                 Activity activitySpec = new Activity()
                 {
                     Id = ACTIVITY_NAME,
-                    Appbundles = new List<string>() { string.Format("{0}.{1}+{2}", NickName, APPNAME, Alias) },
+                    Appbundles = new List<string>() { AppBundleFullName },
                     CommandLine = new List<string>() { commandLine },
                     Engine = ENGINE_NAME,
                     Parameters = new Dictionary<string, Parameter>()
@@ -154,14 +149,7 @@ namespace DesignCheck.Controllers
                         { "result", new Parameter() { Description = "Resulting JSON File", LocalName = "result.txt", Ondemand = false, Required = true, Verb = Verb.Put, Zip = false } }
                     }
                 };
-                try
-                {
-                    Activity newActivity = await _designAutomation.CreateActivityAsync(activitySpec);
-                }
-                catch(Exception ex)
-                {
-
-                }
+                Activity newActivity = await _designAutomation.CreateActivityAsync(activitySpec);
 
                 // specify the alias for this Activity
                 Alias aliasSpec = new Alias() { Id = Alias, Version = 1 };
@@ -185,6 +173,7 @@ namespace DesignCheck.Controllers
             return new XrefTreeArgument()
             {
                 Url = downloadUrl,
+                Verb = Verb.Get,
                 Headers = new Dictionary<string, string>()
                 {
                     { "Authorization", "Bearer " + userAccessToken }
@@ -209,32 +198,25 @@ namespace DesignCheck.Controllers
             {
                 Url = uploadToS3.ToString(),
                 Verb = Verb.Put
-                //Headers = new Dictionary<string, string>()
-                //{
-                //    {"Authorization", "Bearer " + tokenHere }
-                //}
             };
         }
 
         public async Task StartDesignCheck(string userId, string hubId, string projectId, string versionId, string contentRootPath)
         {
-            TwoLeggedApi oauth = new TwoLeggedApi();
-            string appAccessToken = (await oauth.AuthenticateAsync(Credentials.GetAppSetting("FORGE_CLIENT_ID"), Credentials.GetAppSetting("FORGE_CLIENT_SECRET"), oAuthConstants.CLIENT_CREDENTIALS, new Scope[] { Scope.CodeAll })).ToObject<Bearer>().AccessToken;
-
             // uncomment these lines to clear all appbundles & activities under your account
             //await _designAutomation.DeleteForgeAppAsync("me");
 
             Credentials credentials = await Credentials.FromDatabaseAsync(userId);
 
-            await EnsureAppBundle(appAccessToken, contentRootPath);
-            await EnsureActivity(appAccessToken);
+            await EnsureAppBundle(contentRootPath);
+            await EnsureActivity();
 
             string resultFilename = versionId.Base64Encode() + ".txt";
             string callbackUrl = string.Format("{0}/api/forge/callback/designautomation/{1}/{2}/{3}/{4}", Credentials.GetAppSetting("FORGE_WEBHOOK_CALLBACK_HOST"), userId, hubId, projectId, versionId.Base64Encode());
 
             WorkItem workItemSpec = new WorkItem()
             {
-                ActivityId = string.Format("{0}.{1}+{2}", NickName, ACTIVITY_NAME, Alias),
+                ActivityId = ActivityFullName,
                 Arguments = new Dictionary<string, IArgument>()
                 {
                     { "rvtFile", await BuildDownloadURL(credentials.TokenInternal, projectId, versionId) },
