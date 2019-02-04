@@ -46,7 +46,7 @@ namespace DesignCheck.Controllers
         private const string ENGINE_NAME = "Autodesk.Revit+2019";
 
         /// NickName.AppBundle+Alias
-        private string AppBundleFullName { get { return string.Format("{0}.{1}+{2}", Utils.NickName, ACTIVITY_NAME, Alias); } }
+        private string AppBundleFullName { get { return string.Format("{0}.{1}+{2}", Utils.NickName, APPNAME, Alias); } }
         /// NickName.Activity+Alias
         private string ActivityFullName { get { return string.Format("{0}.{1}+{2}", Utils.NickName, ACTIVITY_NAME, Alias); } }
         /// Prefix for AppBundles and Activities
