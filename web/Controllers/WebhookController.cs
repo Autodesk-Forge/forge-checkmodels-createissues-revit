@@ -45,7 +45,7 @@ namespace DesignCheck.Controllers
         {
             get
             {
-                return Credentials.GetAppSetting("FORGE_WEBHOOK_CALLBACK_HOST") + "/api/forge/callback/webhook";
+                return Credentials.GetAppSetting("FORGE_WEBHOOK_URL") + "/api/forge/callback/webhook";
             }
         }
 

@@ -212,7 +212,7 @@ namespace DesignCheck.Controllers
             await EnsureActivity();
 
             string resultFilename = versionId.Base64Encode() + ".txt";
-            string callbackUrl = string.Format("{0}/api/forge/callback/designautomation/{1}/{2}/{3}/{4}", Credentials.GetAppSetting("FORGE_WEBHOOK_CALLBACK_HOST"), userId, hubId, projectId, versionId.Base64Encode());
+            string callbackUrl = string.Format("{0}/api/forge/callback/designautomation/{1}/{2}/{3}/{4}", Credentials.GetAppSetting("FORGE_WEBHOOK_URL"), userId, hubId, projectId, versionId.Base64Encode());
 
             WorkItem workItemSpec = new WorkItem()
             {
