@@ -40,7 +40,7 @@ Try it at [revitdesigncheck.herokuapp.com](https://revitdesigncheck.herokuapp.co
 2. **Visual Studio**: Either Community (Windows) or Code (Windows, MacOS).
 3. **.NET Core** basic knowledge with C#
 4. **ngrok**: Routing tool, [download here](https://ngrok.com/)
-5. **MongoDB**: noSQL database, [learn more](https://www.mongodb.com/). Or use a online version via [mLab](https://mlab.com/) (this is used on this sample)
+5. **MongoDB**: noSQL database, [learn more](https://www.mongodb.com/). Or use a online version via [Mongo Altas](https://www.mongodb.com/cloud/atlas) (this is used on this sample)
 6. **AWS Account**: S3 buckets are used to store result files
 7. **Revit** 2019: required to compile changes into the plugin
 
@@ -65,12 +65,11 @@ Open the folder, at the bottom-right, select **Yes** and **Restore**. This resto
 
 **MongoDB**
 
-[MongoDB](https://www.mongodb.com) is a no-SQL database based on "documents", which stores JSON-like data. For testing purpouses, you can either use local or live. For cloud environment, try [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) (offers a free tier). With MongoDB Atlas you can set up an account for free and create clustered instances.
+[MongoDB](https://www.mongodb.com) is a no-SQL database based on "documents", which stores JSON-like data. For testing purpouses, you can either use local or live. For cloud environment, try [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) (offers a free tier). With MongoDB Atlas you can set up an account for free and create clustered instances, intructions:
 
-1. Create a account
-2. Create a new collection (e.g. named `designcheck`)
-3. Create a new user to access the database
-4. Whitelist the IP address to access the database, [see this tutorial](https://docs.atlas.mongodb.com/security-whitelist/). If the sample is running on Heroku, you'll need to open to all (IP `0.0.0.0/0`)
+1. Create a account on MongoDB Atlas.
+2. Under "Collections", create a new database (e.g. named `designcheck`) with a collection (e.g. named `users`).
+3. Under "Command Line Tools", whitelist the IP address to access the database, [see this tutorial](https://docs.atlas.mongodb.com/security-whitelist/). If the sample is running on Heroku, you'll need to open to all (IP `0.0.0.0/0`). Create a new user to access the database. 
 
 At this point the connection string should be in the form of `mongodb+srv://<username>:<password>@clusterX-a1b2c4.mongodb.net/designcheck?retryWrites=true`. [Learn more here](https://docs.mongodb.com/manual/reference/connection-string/)
 
