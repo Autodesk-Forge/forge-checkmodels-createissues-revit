@@ -65,16 +65,16 @@ Open the folder, at the bottom-right, select **Yes** and **Restore**. This resto
 
 **MongoDB**
 
-[MongoDB](https://www.mongodb.com) is a no-SQL database based on "documents", which stores JSON-like data. For testing purpouses, you can either use local or live. One easy way is using [mLab](https://mlab.com).
+[MongoDB](https://www.mongodb.com) is a no-SQL database based on "documents", which stores JSON-like data. For testing purpouses, you can either use local or live. For cloud environment, try [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) (offers a free tier). With MongoDB Atlas you can set up an account for free and create clustered instances.
 
 1. Create a account
-2. Create a new database (e.g. named `designcheck`)
-3. Under **Collections**, add a new `users` collection
-4. Under **Users**, add a new database user, e.g. `appuser`
+2. Create a new collection (e.g. named `designcheck`)
+3. Create a new user to access the database
+4. Whitelist the IP address to access the database, [see this tutorial](https://docs.atlas.mongodb.com/security-whitelist/). If the sample is running on Heroku, you'll need to open to all (IP `0.0.0.0/0`)
 
-At this point the connection string should be in the form of `mongodb://<dbuser>:<dbpassword>@ds<number>.mlab.com:<port>/designcheck `. 
+At this point the connection string should be in the form of `mongodb+srv://<username>:<password>@clusterX-a1b2c4.mongodb.net/designcheck?retryWrites=true`. [Learn more here](https://docs.mongodb.com/manual/reference/connection-string/)
 
-There are several tools to view your database, [Robo 3T](https://robomongo.org/) (formerly Robomongo) is a free lightweight GUI that can be used. When it opens, click on **Create**, then at **Connection** specify a `name`, enter your `ds<number>.mlab.com` as address and `<port>` number as port, also at **Authentication** enter the datbase name (e.g. `designcheck `) and `<dbuser>` and `<dbpassword>`.
+There are several tools to view your database, [Robo 3T](https://robomongo.org/) (formerly Robomongo) is a free lightweight GUI that can be used. When it opens, follow instructions [here](https://www.datduh.com/blog/2017/7/26/how-to-connect-to-mongodb-atlas-using-robo-3t-robomongo) to connect to MongoDB Atlas.
 
 **AWS Account**
 
@@ -95,7 +95,7 @@ At the `.vscode\launch.json`, find the env vars and add your Forge Client ID, Se
     "FORGE_CLIENT_ID": "your id here",
     "FORGE_CLIENT_SECRET": "your secret here",
     "FORGE_CALLBACK_URL": "http://localhost:3000/api/forge/callback/oauth",
-    "OAUTH_DATABASE": "mongodb://<dbuser>:<dbpassword>@ds<number>.mlab.com:<port>/designcheck",
+    "OAUTH_DATABASE": "mongodb+srv://<username>:<password>@clusterX-a1b2c4.mongodb.net/designcheck?retryWrites=true",
     "FORGE_WEBHOOK_URL": "your ngrok address here: e.g. http://abcd1234.ngrok.io",
     "AWS_ACCESS_KEY": "your AWS access key here",
     "AWS_SECRET_KEY": "your AWS secret key here"
@@ -134,7 +134,7 @@ Other APIs:
 
 - [Hangfire](https://www.hangfire.io/) queueing library for .NET
 - [MongoDB for C#](https://docs.mongodb.com/ecosystem/drivers/csharp/) driver
-- [mLab](https://mlab.com/) Database-as-a-Service for MongoDB
+- [Mongo Altas](https://www.mongodb.com/cloud/atlas) Database-as-a-Service for MongoDB
 
 ### Known Issues
 
