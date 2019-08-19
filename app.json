@@ -20,7 +20,7 @@
             "description": "Callback URL of your Forge app, required for 3-legged OAuth",
             "value": "https://<<YOUR HEROKU APP NAME HERE>>.herokuapp.com/api/forge/callback/oauth"
         },
-        "FORGE_WEBHOOK_CALLBACK_HOST": {
+        "FORGE_WEBHOOK_URL": {
             "description": "Callback URL of your webhook",
             "value": "http://<<YOUR HEROKU APP NAME HERE>>.herokuapp.com"
         },
