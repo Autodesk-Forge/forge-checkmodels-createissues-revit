@@ -1,4 +1,4 @@
-# design.automation-csharp-revit.check.issues
+# Checks models and creates BIM 360 Issues
 
 ![Platforms](https://img.shields.io/badge/Web-Windows|MacOS-lightgray.svg)
 ![.NET](https://img.shields.io/badge/.NET%20Core-2.1-blue.svg)
