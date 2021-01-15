@@ -29,8 +29,8 @@ namespace DesignCheck.Controllers
 {
     public class DesignAutomationController : ControllerBase
     {
-        private IHostingEnvironment _env;
-        public DesignAutomationController(IHostingEnvironment env)
+        private IWebHostEnvironment _env;
+        public DesignAutomationController(IWebHostEnvironment env)
         {
             _env = env;
         }

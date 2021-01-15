@@ -43,6 +43,7 @@ namespace DesignCheck.Controllers
         private const string APPNAME = "FindColumnsApp";
         private const string APPBUNBLENAME = "FindColumnsIO.zip";
         private const string ACTIVITY_NAME = "FindColumnsActivity";
+        protected string Script { get; set; }
         private const string ENGINE_NAME = "Autodesk.Revit+2019";
 
         /// NickName.AppBundle+Alias
@@ -92,7 +93,7 @@ namespace DesignCheck.Controllers
             {
                 // check if ZIP with bundle is here
                 string packageZipPath = Path.Combine(contentRootPath + "/bundles/", APPBUNBLENAME);
-                if (!File.Exists(packageZipPath)) throw new Exception("FindColumns appbundle not found at " + packageZipPath);
+                if (!File.Exists(packageZipPath)) throw new Exception(APPBUNBLENAME +" not found at " + packageZipPath);
 
                 AppBundle appBundleSpec = new AppBundle()
                 {
@@ -136,17 +137,21 @@ namespace DesignCheck.Controllers
 
             if (!existActivity)
             {
-                string commandLine = string.Format(@"$(engine.path)\\revitcoreconsole.exe /i $(args[rvtFile].path) /al $(appbundles[{0}].path)", APPNAME);
+                string commandLine = string.Format(@"$(engine.path)\\revitcoreconsole.exe /i $(args[inputFile].path) /al $(appbundles[{0}].path)", APPNAME);
                 Activity activitySpec = new Activity()
                 {
                     Id = ACTIVITY_NAME,
                     Appbundles = new List<string>() { AppBundleFullName },
-                    CommandLine = new List<string>() { commandLine },
+                    CommandLine = new List<string>() { $"\"{commandLine}\"" },
                     Engine = ENGINE_NAME,
                     Parameters = new Dictionary<string, Parameter>()
                     {
-                        { "rvtFile", new Parameter() { Description = "Input Revit File", LocalName = "$(rvtFile)", Ondemand = false, Required = true, Verb = Verb.Get, Zip = false } },
+                        { "inputFile", new Parameter() { Description = "Input Revit File", LocalName = "$(inputFile)", Ondemand = false, Required = true, Verb = Verb.Get, Zip = false } },
                         { "result", new Parameter() { Description = "Resulting JSON File", LocalName = "result.txt", Ondemand = false, Required = true, Verb = Verb.Put, Zip = false } }
+                    },
+                    Settings = new Dictionary<string, ISetting>()
+                    {
+                        { "script", new StringSetting(){ Value = Script } }
                     }
                 };
                 Activity newActivity = await _designAutomation.CreateActivityAsync(activitySpec);
@@ -219,12 +224,12 @@ namespace DesignCheck.Controllers
                 ActivityId = ActivityFullName,
                 Arguments = new Dictionary<string, IArgument>()
                 {
-                    { "rvtFile", await BuildDownloadURL(credentials.TokenInternal, projectId, versionId) },
+                    { "inputFile", await BuildDownloadURL(credentials.TokenInternal, projectId, versionId) },
                     { "result",  await BuildUploadURL(resultFilename) },
                     { "onComplete", new XrefTreeArgument { Verb = Verb.Post, Url = callbackUrl } }
                 }
             };
-            WorkItemStatus workItemStatus = await _designAutomation.CreateWorkItemsAsync(workItemSpec);
+            WorkItemStatus workItemStatus = await _designAutomation.CreateWorkItemAsync(workItemSpec);
         }
     }
 }
