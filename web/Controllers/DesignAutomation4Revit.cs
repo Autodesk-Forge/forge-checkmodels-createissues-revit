@@ -16,11 +16,11 @@
 // UNINTERRUPTED OR ERROR FREE.
 /////////////////////////////////////////////////////////////////////
 
-using Amazon.S3;
 using Autodesk.Forge;
 using Autodesk.Forge.Core;
 using Autodesk.Forge.DesignAutomation;
 using Autodesk.Forge.DesignAutomation.Model;
+using Autodesk.Forge.Model;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -137,12 +137,12 @@ namespace DesignCheck.Controllers
 
             if (!existActivity)
             {
-                string commandLine = string.Format(@"$(engine.path)\\revitcoreconsole.exe /i $(args[inputFile].path) /al $(appbundles[{0}].path)", APPNAME);
+                string commandLine = string.Format(@"$(engine.path)\\revitcoreconsole.exe /i {0}$(args[inputFile].path){0} /al {0}$(appbundles[{1}].path){0}", "\"", APPNAME);
                 Activity activitySpec = new Activity()
                 {
                     Id = ACTIVITY_NAME,
                     Appbundles = new List<string>() { AppBundleFullName },
-                    CommandLine = new List<string>() { $"\"{commandLine}\"" },
+                    CommandLine = new List<string>() { commandLine },
                     Engine = ENGINE_NAME,
                     Parameters = new Dictionary<string, Parameter>()
                     {
@@ -189,19 +189,22 @@ namespace DesignCheck.Controllers
         private async Task<XrefTreeArgument> BuildUploadURL(string resultFilename)
         {
             string bucketName = "revitdesigncheck" + NickName.ToLower();
-            var awsCredentials = new Amazon.Runtime.BasicAWSCredentials(Credentials.GetAppSetting("AWS_ACCESS_KEY"), Credentials.GetAppSetting("AWS_SECRET_KEY"));
-            IAmazonS3 client = new AmazonS3Client(awsCredentials, Amazon.RegionEndpoint.USWest2);
+            BucketsApi buckets = new BucketsApi();
+            dynamic token = await Credentials.Get2LeggedTokenAsync(new Scope[] { Scope.BucketCreate, Scope.DataWrite });
+            buckets.Configuration.AccessToken = token.access_token;
+            PostBucketsPayload bucketPayload = new PostBucketsPayload(bucketName, null, PostBucketsPayload.PolicyKeyEnum.Transient);
+            try
+            {
+                await buckets.CreateBucketAsync(bucketPayload, "US");
+            }
+            catch { }
 
-            if (!await client.DoesS3BucketExistAsync(bucketName))
-                await client.EnsureBucketExistsAsync(bucketName);
-
-            Dictionary<string, object> props = new Dictionary<string, object>();
-            props.Add("Verb", "PUT");
-            Uri uploadToS3 = new Uri(client.GeneratePreSignedURL(bucketName, resultFilename, DateTime.Now.AddMinutes(10), props));
+            ObjectsApi objects = new ObjectsApi();
+            dynamic signedUrl = await objects.CreateSignedResourceAsyncWithHttpInfo(bucketName, resultFilename, new PostBucketsSigned(5), "readwrite");
 
             return new XrefTreeArgument()
             {
-                Url = uploadToS3.ToString(),
+                Url = (string)(signedUrl.Data.signedUrl),
                 Verb = Verb.Put
             };
         }

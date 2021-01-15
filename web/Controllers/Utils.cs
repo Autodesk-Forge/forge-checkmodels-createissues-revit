@@ -16,7 +16,6 @@
 // UNINTERRUPTED OR ERROR FREE.
 /////////////////////////////////////////////////////////////////////
 
-using Amazon.S3;
 using Autodesk.Forge;
 using Autodesk.Forge.DesignAutomation.v3;
 using Autodesk.Forge.Model;

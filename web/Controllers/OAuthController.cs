@@ -230,5 +230,17 @@ namespace DesignCheck.Controllers
         {
             return Environment.GetEnvironmentVariable(settingKey);
         }
+
+        public static async Task<dynamic> Get2LeggedTokenAsync(Scope[] scopes)
+        {
+            TwoLeggedApi oauth = new TwoLeggedApi();
+            string grantType = "client_credentials";
+            dynamic bearer = await oauth.AuthenticateAsync(
+              GetAppSetting("FORGE_CLIENT_ID"),
+              GetAppSetting("FORGE_CLIENT_SECRET"),
+              grantType,
+              scopes);
+            return bearer;
+        }
     }
 }

@@ -13,8 +13,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.10" />
     <PackageReference Include="Autodesk.Forge" Version="1.5.2" />
     <PackageReference Include="Autodesk.Forge.DesignAutomation" Version="3.0.6" />
-    <PackageReference Include="AWSSDK.Core" Version="3.5.1.58" />
-    <PackageReference Include="AWSSDK.S3" Version="3.5.7.5" />
     <PackageReference Include="HangFire" Version="1.7.18" />
     <PackageReference Include="Hangfire.MemoryStorage" Version="1.7.0" />
     <PackageReference Include="MongoDB.Driver" Version="2.11.5" />
