@@ -45,12 +45,13 @@ namespace DesignCheck.Controllers
         /// <returns></returns>
         public async Task<IList<GetHookData.Hook>> Hooks(Event eventType, string folderId)
         {
-            RestRequest request = new RestRequest("/webhooks/v1/systems/data/events/{event}/hooks?scopeName=folder&scopeValue={folderId}", Method.GET);
+            RestRequest request = new RestRequest("/webhooks/v1/systems/data/events/{event}/hooks", Method.GET);
             request.AddParameter("event", EnumToString(eventType), ParameterType.UrlSegment);
-            request.AddParameter("folderId", folderId, ParameterType.UrlSegment);
+            request.AddParameter("scopeName", "folder", ParameterType.QueryString);
+            request.AddParameter("scopeValue", folderId, ParameterType.QueryString);
             request.AddHeader("Authorization", "Bearer " + AccessToken);
 
-            IRestResponse<GetHookData> response = await client.ExecuteTaskAsync<GetHookData>(request);
+            IRestResponse<GetHookData> response = await client.ExecuteAsync<GetHookData>(request);
 
             return response.Data.data;
         }
@@ -73,8 +74,9 @@ namespace DesignCheck.Controllers
             RestRequest request = new RestRequest("/webhooks/v1/systems/data/events/{event}/hooks", Method.POST);
             request.AddParameter("event", EnumToString(eventType), ParameterType.UrlSegment);
             request.AddHeader("Authorization", "Bearer " + AccessToken);
-            request.AddParameter("application/json", body.ToString(), ParameterType.RequestBody);
-            IRestResponse response = await client.ExecuteTaskAsync(request);
+            request.AddHeader("Content-Type", "application/json");
+            request.AddParameter("undefined", body.ToString(), ParameterType.RequestBody);
+            IRestResponse response = await client.ExecuteAsync(request);
 
             return response.StatusCode;
         }
@@ -94,7 +96,7 @@ namespace DesignCheck.Controllers
                 request.AddParameter("event", EnumToString(eventType), ParameterType.UrlSegment);
                 request.AddParameter("hook_id", hook.hookId, ParameterType.UrlSegment);
                 request.AddHeader("Authorization", "Bearer " + AccessToken);
-                IRestResponse response = await client.ExecuteTaskAsync(request);
+                IRestResponse response = await client.ExecuteAsync(request);
 
                 status.Add(hook.hookId, response.StatusCode);
             }

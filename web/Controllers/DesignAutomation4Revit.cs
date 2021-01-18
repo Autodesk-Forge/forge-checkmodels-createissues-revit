@@ -117,7 +117,7 @@ namespace DesignCheck.Controllers
                 foreach (KeyValuePair<string, string> x in newAppVersion.UploadParameters.FormData) request.AddParameter(x.Key, x.Value);
                 request.AddFile("file", packageZipPath);
                 request.AddHeader("Cache-Control", "no-cache");
-                await uploadClient.ExecuteTaskAsync(request);
+                await uploadClient.ExecuteAsync(request);
             }
         }
 
