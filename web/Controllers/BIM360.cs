@@ -72,7 +72,7 @@ namespace DesignCheck.Controllers
             request.AddHeader("Content-Type", "application/vnd.api+json");
             request.AddParameter("text/json", Newtonsoft.Json.JsonConvert.SerializeObject(body), ParameterType.RequestBody);
 
-            var res = await client.ExecuteTaskAsync(request);
+            var res = await client.ExecuteAsync(request);
         }
     }
 }
