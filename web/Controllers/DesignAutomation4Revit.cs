@@ -16,11 +16,11 @@
 // UNINTERRUPTED OR ERROR FREE.
 /////////////////////////////////////////////////////////////////////
 
-using Amazon.S3;
 using Autodesk.Forge;
 using Autodesk.Forge.Core;
 using Autodesk.Forge.DesignAutomation;
 using Autodesk.Forge.DesignAutomation.Model;
+using Autodesk.Forge.Model;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -43,6 +43,7 @@ namespace DesignCheck.Controllers
         private const string APPNAME = "FindColumnsApp";
         private const string APPBUNBLENAME = "FindColumnsIO.zip";
         private const string ACTIVITY_NAME = "FindColumnsActivity";
+        protected string Script { get; set; }
         private const string ENGINE_NAME = "Autodesk.Revit+2019";
 
         /// NickName.AppBundle+Alias
@@ -92,7 +93,7 @@ namespace DesignCheck.Controllers
             {
                 // check if ZIP with bundle is here
                 string packageZipPath = Path.Combine(contentRootPath + "/bundles/", APPBUNBLENAME);
-                if (!File.Exists(packageZipPath)) throw new Exception("FindColumns appbundle not found at " + packageZipPath);
+                if (!File.Exists(packageZipPath)) throw new Exception(APPBUNBLENAME +" not found at " + packageZipPath);
 
                 AppBundle appBundleSpec = new AppBundle()
                 {
@@ -116,7 +117,7 @@ namespace DesignCheck.Controllers
                 foreach (KeyValuePair<string, string> x in newAppVersion.UploadParameters.FormData) request.AddParameter(x.Key, x.Value);
                 request.AddFile("file", packageZipPath);
                 request.AddHeader("Cache-Control", "no-cache");
-                await uploadClient.ExecuteTaskAsync(request);
+                await uploadClient.ExecuteAsync(request);
             }
         }
 
@@ -136,7 +137,7 @@ namespace DesignCheck.Controllers
 
             if (!existActivity)
             {
-                string commandLine = string.Format(@"$(engine.path)\\revitcoreconsole.exe /i $(args[rvtFile].path) /al $(appbundles[{0}].path)", APPNAME);
+                string commandLine = string.Format(@"$(engine.path)\\revitcoreconsole.exe /i {0}$(args[inputFile].path){0} /al {0}$(appbundles[{1}].path){0}", "\"", APPNAME);
                 Activity activitySpec = new Activity()
                 {
                     Id = ACTIVITY_NAME,
@@ -145,8 +146,12 @@ namespace DesignCheck.Controllers
                     Engine = ENGINE_NAME,
                     Parameters = new Dictionary<string, Parameter>()
                     {
-                        { "rvtFile", new Parameter() { Description = "Input Revit File", LocalName = "$(rvtFile)", Ondemand = false, Required = true, Verb = Verb.Get, Zip = false } },
+                        { "inputFile", new Parameter() { Description = "Input Revit File", LocalName = "$(inputFile)", Ondemand = false, Required = true, Verb = Verb.Get, Zip = false } },
                         { "result", new Parameter() { Description = "Resulting JSON File", LocalName = "result.txt", Ondemand = false, Required = true, Verb = Verb.Put, Zip = false } }
+                    },
+                    Settings = new Dictionary<string, ISetting>()
+                    {
+                        { "script", new StringSetting(){ Value = Script } }
                     }
                 };
                 Activity newActivity = await _designAutomation.CreateActivityAsync(activitySpec);
@@ -184,19 +189,22 @@ namespace DesignCheck.Controllers
         private async Task<XrefTreeArgument> BuildUploadURL(string resultFilename)
         {
             string bucketName = "revitdesigncheck" + NickName.ToLower();
-            var awsCredentials = new Amazon.Runtime.BasicAWSCredentials(Credentials.GetAppSetting("AWS_ACCESS_KEY"), Credentials.GetAppSetting("AWS_SECRET_KEY"));
-            IAmazonS3 client = new AmazonS3Client(awsCredentials, Amazon.RegionEndpoint.USWest2);
+            BucketsApi buckets = new BucketsApi();
+            dynamic token = await Credentials.Get2LeggedTokenAsync(new Scope[] { Scope.BucketCreate, Scope.DataWrite });
+            buckets.Configuration.AccessToken = token.access_token;
+            PostBucketsPayload bucketPayload = new PostBucketsPayload(bucketName, null, PostBucketsPayload.PolicyKeyEnum.Transient);
+            try
+            {
+                await buckets.CreateBucketAsync(bucketPayload, "US");
+            }
+            catch { }
 
-            if (!await client.DoesS3BucketExistAsync(bucketName))
-                await client.EnsureBucketExistsAsync(bucketName);
-
-            Dictionary<string, object> props = new Dictionary<string, object>();
-            props.Add("Verb", "PUT");
-            Uri uploadToS3 = new Uri(client.GeneratePreSignedURL(bucketName, resultFilename, DateTime.Now.AddMinutes(10), props));
+            ObjectsApi objects = new ObjectsApi();
+            dynamic signedUrl = await objects.CreateSignedResourceAsyncWithHttpInfo(bucketName, resultFilename, new PostBucketsSigned(5), "readwrite");
 
             return new XrefTreeArgument()
             {
-                Url = uploadToS3.ToString(),
+                Url = (string)(signedUrl.Data.signedUrl),
                 Verb = Verb.Put
             };
         }
@@ -219,12 +227,12 @@ namespace DesignCheck.Controllers
                 ActivityId = ActivityFullName,
                 Arguments = new Dictionary<string, IArgument>()
                 {
-                    { "rvtFile", await BuildDownloadURL(credentials.TokenInternal, projectId, versionId) },
+                    { "inputFile", await BuildDownloadURL(credentials.TokenInternal, projectId, versionId) },
                     { "result",  await BuildUploadURL(resultFilename) },
                     { "onComplete", new XrefTreeArgument { Verb = Verb.Post, Url = callbackUrl } }
                 }
             };
-            WorkItemStatus workItemStatus = await _designAutomation.CreateWorkItemsAsync(workItemSpec);
+            WorkItemStatus workItemStatus = await _designAutomation.CreateWorkItemAsync(workItemSpec);
         }
     }
 }

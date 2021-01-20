@@ -28,8 +28,8 @@ namespace DesignCheck.Controllers
 {
     public class WebhookController : ControllerBase
     {
-        private IHostingEnvironment _env;
-        public WebhookController(IHostingEnvironment env)
+        private IWebHostEnvironment _env;
+        public WebhookController(IWebHostEnvironment env)
         {
             _env = env;
         }

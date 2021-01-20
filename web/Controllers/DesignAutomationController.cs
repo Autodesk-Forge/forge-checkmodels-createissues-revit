@@ -16,7 +16,6 @@
 // UNINTERRUPTED OR ERROR FREE.
 /////////////////////////////////////////////////////////////////////
 
-using Amazon.S3;
 using Autodesk.Forge;
 using Hangfire;
 using Microsoft.AspNetCore.Hosting;
@@ -29,8 +28,8 @@ namespace DesignCheck.Controllers
 {
     public class DesignAutomationController : ControllerBase
     {
-        private IHostingEnvironment _env;
-        public DesignAutomationController(IHostingEnvironment env)
+        private IWebHostEnvironment _env;
+        public DesignAutomationController(IWebHostEnvironment env)
         {
             _env = env;
         }
@@ -65,23 +64,27 @@ namespace DesignCheck.Controllers
         public async Task CreateIssues(string userId, string hubId, string projectId, string versionId, string contentRootPath, string host)
         {
             string bucketName = "revitdesigncheck" + DesignAutomation4Revit.NickName.ToLower();
-            var awsCredentials = new Amazon.Runtime.BasicAWSCredentials(Credentials.GetAppSetting("AWS_ACCESS_KEY"), Credentials.GetAppSetting("AWS_SECRET_KEY"));
-            IAmazonS3 client = new AmazonS3Client(awsCredentials, Amazon.RegionEndpoint.USWest2);
-
             string resultFilename = versionId + ".txt";
 
-            // create AWS Bucket
-            if (!await client.DoesS3BucketExistAsync(bucketName)) return;
-            Uri downloadFromS3 = new Uri(client.GeneratePreSignedURL(bucketName, resultFilename, DateTime.Now.AddMinutes(10), null));
-
-
-            // ToDo: is there a better way?
-            string results = Path.Combine(contentRootPath, resultFilename);
-            var keys = await client.GetAllObjectKeysAsync(bucketName, null, null);
-            if (!keys.Contains(resultFilename)) return; // file is not there
-            await client.DownloadToFilePathAsync(bucketName, resultFilename, results, null);
-            string contents = System.IO.File.ReadAllText(results);
-
+            //Here we retrieve de data uploaded to the bucket from Design Automation
+            ObjectsApi objects = new ObjectsApi();
+            dynamic token = await Credentials.Get2LeggedTokenAsync(new Scope[] { Scope.DataRead });
+            objects.Configuration.AccessToken = token.access_token;
+            string fileContents;
+            try
+            {
+                dynamic objectDownload = objects.GetObject(bucketName, resultFilename);
+                using (StreamReader reader = new StreamReader(objectDownload))
+                {
+                    fileContents = reader.ReadToEnd();
+                }
+            }
+            catch (Exception e)
+            {
+                //couldn't download the file
+                return;
+            }
+            
             Credentials credentials = await Credentials.FromDatabaseAsync(userId);
 
             VersionsApi versionApi = new VersionsApi();
@@ -91,7 +94,7 @@ namespace DesignCheck.Controllers
             int version = Int32.Parse(versionId.Split("_")[1].Base64Decode().Split("=")[1]);
 
             string title = string.Format("Column clash report for version {0}", version);
-            string description = string.Format("<a href=\"http://{0}/issues/?urn={1}&id={2}\" target=\"_blank\">Click to view issues</a>", host, versionId, contents.Base64Encode());
+            string description = string.Format("<a href=\"http://{0}/issues/?urn={1}&id={2}\" target=\"_blank\">Click to view issues</a>", host, versionId, fileContents.Base64Encode());
 
             // create issues
             BIM360Issues issues = new BIM360Issues();
@@ -100,7 +103,7 @@ namespace DesignCheck.Controllers
 
             // only delete if it completes
             System.IO.File.Delete(resultFilename);
-            await client.DeleteObjectAsync(bucketName, resultFilename);
+            objects.DeleteObject(bucketName, resultFilename);
         }
     }
 }

@@ -142,7 +142,7 @@ namespace DesignCheck.Controllers
             cookies.Append(FORGE_COOKIE, JsonConvert.SerializeObject(credentials));
 
             // add a record on our database for the tokens and refresh token
-            OAuthDB.Register(credentials.UserId, JsonConvert.SerializeObject(credentials));
+            await OAuthDB.Register(credentials.UserId, JsonConvert.SerializeObject(credentials));
 
             return credentials;
         }
@@ -220,7 +220,7 @@ namespace DesignCheck.Controllers
             ExpiresAt = DateTime.Now.AddSeconds(credentialInternal.expires_in);
 
             // update the record on our database for the tokens and refresh token
-            OAuthDB.Register(await GetUserId(this), JsonConvert.SerializeObject(this));
+            await OAuthDB.Register(await GetUserId(this), JsonConvert.SerializeObject(this));
         }
 
         /// <summary>
@@ -229,6 +229,18 @@ namespace DesignCheck.Controllers
         public static string GetAppSetting(string settingKey)
         {
             return Environment.GetEnvironmentVariable(settingKey);
+        }
+
+        public static async Task<dynamic> Get2LeggedTokenAsync(Scope[] scopes)
+        {
+            TwoLeggedApi oauth = new TwoLeggedApi();
+            string grantType = "client_credentials";
+            dynamic bearer = await oauth.AuthenticateAsync(
+              GetAppSetting("FORGE_CLIENT_ID"),
+              GetAppSetting("FORGE_CLIENT_SECRET"),
+              grantType,
+              scopes);
+            return bearer;
         }
     }
 }
