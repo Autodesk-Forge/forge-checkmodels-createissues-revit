@@ -57,7 +57,7 @@ Right-click on the project, then go to **Debug**. Adjust the settings as shown b
 
 ![](readme/visual_studio_settings.png) 
 
-**Visual Sutdio Code** (Windows, MacOS):
+**Visual Studio Code** (Windows, MacOS):
 
 Open the folder, at the bottom-right, select **Yes** and **Restore**. This restores the packages (e.g. Autodesk.Forge) and creates the launch.json file. See *Tips & Tricks* for .NET Core on MacOS.
 
